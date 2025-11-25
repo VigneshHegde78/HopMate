@@ -4,7 +4,6 @@ module.exports = {
 	presets: [require("nativewind/preset")],
 	theme: {
 		extend: {
-			/*
 			fontFamily: {
 				lexend: ["Lexend-Regular", "sans-serif"],
 				lexendMedium: ["Lexend-Medium", "sans-serif"],
@@ -24,7 +23,6 @@ module.exports = {
 			colors: {
 				subtletext: "#777",
 			},
-      */
 		},
 	},
 	plugins: [],

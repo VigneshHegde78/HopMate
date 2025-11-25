@@ -84,7 +84,7 @@ export default function Onboarding() {
 		<SafeAreaView className="flex h-full items-center justify-between bg-white">
 			{/* Skip Button */}
 			<View className="w-full flex-row justify-end p-5">
-				<TouchableOpacity onPress={() => router.replace("/(auth)/sign-in")}>
+				<TouchableOpacity onPress={() => router.replace("/(root)/(tabs)/home")}>
 					<Text className="text-black text-md font-figtreeBold underline">
 						Skip
 					</Text>
