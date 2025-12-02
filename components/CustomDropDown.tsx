@@ -8,7 +8,7 @@ const data = [
 	{ label: "Other", value: "3" },
 ];
 
-const DropdownComponent = () => {
+const DropdownComponent = ({ gender }: { gender: string }) => {
 	const [value, setValue] = useState(null);
 	const [isFocus, setIsFocus] = useState(false);
 
@@ -29,8 +29,8 @@ const DropdownComponent = () => {
 				maxHeight={300}
 				labelField="label"
 				valueField="value"
-				placeholder={!isFocus ? "Select item" : "..."}
-				value={value}
+				placeholder={!isFocus ? "Select" : "..."}
+				value={gender}
 				onFocus={() => setIsFocus(true)}
 				onBlur={() => setIsFocus(false)}
 				onChange={(item) => {
