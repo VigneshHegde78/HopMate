@@ -17,6 +17,7 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 /**
  * ProfileFromScratchNativeWind.tsx
@@ -135,7 +136,7 @@ export default function ProfileFromScratchNativeWind() {
 		keyboardType?: any,
 		multiline = false
 	) => (
-		<View className="mb-3">
+		<SafeAreaView className="mb-3">
 			<Text className="text-xs text-gray-500 mb-1 font-semibold">{label}</Text>
 			{editing ? (
 				<TextInput
@@ -151,7 +152,7 @@ export default function ProfileFromScratchNativeWind() {
 			) : (
 				<Text className="text-sm text-gray-700">{value || "Not Provided"}</Text>
 			)}
-		</View>
+		</SafeAreaView>
 	);
 
 	return (

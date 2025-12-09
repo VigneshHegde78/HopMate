@@ -1,3 +1,4 @@
+import MapComponent from "@/components/MapComponent";
 import { icons } from "@/constants";
 import { useUserMode } from "@/contexts/UserModeContext";
 import React from "react";
@@ -40,65 +41,7 @@ export default function Home() {
 		<SafeAreaView style={styles.container}>
 			{/* Map Image */}
 			<View className="flex items-center justify-between w-full h-full absolute bg-white">
-				<Image
-					source={{
-						uri: `https://maps.geoapify.com/v1/staticmap?style=osm-bright&width=400&height=600&center=lonlat:73.856744,18.520430&zoom=15&apiKey=${process.env.EXPO_PUBLIC_GEOAPIFY_API_KEY}`,
-					}}
-					className="w-full h-full"
-					resizeMode="cover"
-				/>
-			</View>
-
-			{/* Circle Radius + Pin + Nearby Users */}
-			<View
-				style={{
-					position: "absolute",
-					top: 0,
-					left: 0,
-					right: 0,
-					bottom: 0,
-					justifyContent: "center",
-					alignItems: "center",
-				}}
-			>
-				<View
-					style={{
-						width: RADIUS * 2,
-						height: RADIUS * 2,
-						borderRadius: RADIUS,
-						backgroundColor: "rgba(2, 134, 255, 0.1)",
-						justifyContent: "center",
-						alignItems: "center",
-					}}
-				>
-					{/* Center Pin */}
-					<Image
-						source={icons.pin}
-						resizeMode="contain"
-						style={{ height: 30, width: 30, tintColor: "#003f5c" }}
-					/>
-
-					{/* Nearby Users as Random Letters */}
-					{nearbyPoints.map((point, index) => {
-						const UserIcon = (
-							<View
-								style={{
-									position: "absolute",
-									left: RADIUS + point.x - 8,
-									top: RADIUS + point.y - 8,
-								}}
-								className="bg-[#fbc02b96] w-7 h-7 rounded-full items-center justify-center"
-							>
-								<Text>
-									{letters.charAt(Math.floor(Math.random() * letters.length))}
-								</Text>
-							</View>
-						);
-						return React.cloneElement(UserIcon, {
-							key: `nearby-user-${index}`,
-						});
-					})}
-				</View>
+				<MapComponent />
 			</View>
 
 			{/* Title */}
