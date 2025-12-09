@@ -1,4 +1,5 @@
 import MapComponent from "@/components/MapComponent";
+import WebMap from "@/components/WebMap";
 import { icons } from "@/constants";
 import { useUserMode } from "@/contexts/UserModeContext";
 import React from "react";
@@ -41,7 +42,7 @@ export default function Home() {
 		<SafeAreaView style={styles.container}>
 			{/* Map Image */}
 			<View className="flex items-center justify-between w-full h-full absolute bg-white">
-				<MapComponent />
+				<WebMap />
 			</View>
 
 			{/* Title */}
