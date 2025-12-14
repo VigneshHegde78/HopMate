@@ -1,24 +1,22 @@
+import Mapbox from "@rnmapbox/maps";
 import React from "react";
-import { View } from "react-native";
-import MapView, { UrlTile } from "react-native-maps";
+import { StyleSheet } from "react-native";
 
-export default function MapComponent() {
-	return (
-		<View style={{ flex: 1 }}>
-			<MapView
-				style={{ flex: 1 }}
-				initialRegion={{
-					latitude: 20.5937, // India center
-					longitude: 78.9629,
-					latitudeDelta: 10,
-					longitudeDelta: 10,
-				}}
-			>
-				<UrlTile
-					urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-					maximumZ={19}
-				/>
-			</MapView>
-		</View>
-	);
-}
+Mapbox.setAccessToken("<YOUR_ACCESSTOKEN>");
+
+const MapComponent = () => {
+	return <Mapbox.MapView style={styles.map} />;
+};
+
+export default MapComponent;
+
+const styles = StyleSheet.create({
+	page: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	map: {
+		flex: 1,
+	},
+});

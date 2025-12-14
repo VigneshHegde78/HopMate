@@ -1,77 +1,28 @@
-import MapComponent from "@/components/MapComponent";
-import WebMap from "@/components/WebMap";
-import { icons } from "@/constants";
-import { useUserMode } from "@/contexts/UserModeContext";
+import CustomBottomSheet from "@/components/CustomBottomSheet";
+import Mapbox from "@rnmapbox/maps";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import React from "react";
-import {
-	Dimensions,
-	Image,
-	StyleSheet,
-	Text,
-	TextInput,
-	View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-const { width } = Dimensions.get("window");
-const RADIUS = 150; // radius of the circle
+Mapbox.setAccessToken("<YOUR_ACCESSTOKEN>");
 
-// Generate N random points inside a circle
-const generateRandomPoints = (numPoints: number, radius: number) => {
-	const points = [];
-	for (let i = 0; i < numPoints; i++) {
-		const angle = Math.random() * 2 * Math.PI;
-		const r = radius * Math.sqrt(Math.random()); // uniform distribution
-		const x = r * Math.cos(angle);
-		const y = r * Math.sin(angle);
-		points.push({ x, y });
-	}
-	return points;
+const Home = () => {
+	return (
+		// 1. GestureHandler must be at the root
+		<GestureHandlerRootView className="flex-1">
+			{/* 2. Provider wraps the screen content */}
+			<BottomSheetModalProvider>
+				<View className="flex-1 relative">
+					{/* 3. Map needs flex-1 to fill the screen */}
+					<Mapbox.MapView className="flex-1" />
+
+					{/* 4. CustomBottomSheet sits "on top" visually because it is rendered last */}
+					<CustomBottomSheet />
+				</View>
+			</BottomSheetModalProvider>
+		</GestureHandlerRootView>
+	);
 };
 
-export default function Home() {
-	const { mode } = useUserMode();
-	const nearbyPoints = generateRandomPoints(8, RADIUS); // 8 nearby users
-	const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-	const handlePlaceSelect = (place: any) => {
-		console.log("Selected place:", place);
-	};
-
-	return (
-		<SafeAreaView style={styles.container}>
-			{/* Map Image */}
-			<View className="flex items-center justify-between w-full h-full absolute bg-white">
-				<WebMap />
-			</View>
-
-			{/* Title */}
-			<View className="flex-row items-end">
-				<Text className="text-3xl font-lexendBold text-[#454545] pl-3 pt-3">
-					HopMate
-				</Text>
-				<Text className="text-xs font-lexendBold text-[#454545] p-1 ml-0.5">
-					{mode.toUpperCase()}
-				</Text>
-			</View>
-			{/* Search Bar */}
-			<View className="mx-3 my-2 bg-white rounded-2xl shadow-sm shadow-neutral-300 px-5 py-1 flex-row items-center">
-				<Image
-					source={icons.search}
-					style={{ width: 20, height: 20, tintColor: "#858585" }}
-					resizeMode="contain"
-				/>
-				<TextInput
-					placeholder="Search for a place or address"
-					placeholderTextColor={"#858585"}
-					className="w-full ml-3 text-gray-500"
-					style={{ height: 40 }}
-				/>
-			</View>
-		</SafeAreaView>
-	);
-}
-
-const styles = StyleSheet.create({
-	container: { flex: 1 },
-});
+export default Home;
