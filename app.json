@@ -35,8 +35,6 @@
 					"locationWhenInUsePermission": "Show current location on map."
 				}
 			],
-			"@rnmapbox/maps",
-
 			[
 				"expo-splash-screen",
 				{

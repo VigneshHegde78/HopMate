@@ -1,57 +1,143 @@
-import {
-	BottomSheetBackdrop,
-	BottomSheetModal,
-	BottomSheetView,
-} from "@gorhom/bottom-sheet";
-import React, { useCallback, useMemo, useRef } from "react";
-import { Text, View } from "react-native";
-import CustomButton from "./CustomButton";
+import { BottomSheetHandleProps } from "@gorhom/bottom-sheet";
+import React, { useMemo } from "react";
+import { StyleProp, StyleSheet, ViewStyle } from "react-native";
+import Animated, {
+	Extrapolate,
+	interpolate,
+	useAnimatedStyle,
+	useDerivedValue,
+} from "react-native-reanimated";
+import { toRad } from "react-native-redash";
 
-const CustomBottomSheet = () => {
-	const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+// @ts-ignore
+export const transformOrigin = ({ x, y }, ...transformations) => {
+	"worklet";
+	return [
+		{ translateX: x },
+		{ translateY: y },
+		...transformations,
+		{ translateX: x * -1 },
+		{ translateY: y * -1 },
+	];
+};
 
-	// KEY FIX: Snap points are required
-	const snapPoints = useMemo(() => ["25%", "50%"], []);
+interface HandleProps extends BottomSheetHandleProps {
+	style?: StyleProp<ViewStyle>;
+}
 
-	const handlePresentModalPress = useCallback(() => {
-		bottomSheetModalRef.current?.present();
-	}, []);
+const CustomBottomSheet: React.FC<HandleProps> = ({ style, animatedIndex }) => {
+	//#region animations
+	const indicatorTransformOriginY = useDerivedValue(() =>
+		interpolate(animatedIndex.value, [0, 1, 2], [-1, 0, 1], Extrapolate.CLAMP)
+	);
+	//#endregion
 
-	const handleSheetChanges = useCallback((index: number) => {
-		console.log("handleSheetChanges", index);
-	}, []);
-
-	// Optional: Adds a dark background when sheet is open
-	const renderBackdrop = useCallback(
-		(props: any) => (
-			<BottomSheetBackdrop
-				{...props}
-				disappearsOnIndex={-1}
-				appearsOnIndex={0}
-			/>
-		),
+	//#region styles
+	const containerStyle = useMemo(() => [styles.header, style], [style]);
+	const containerAnimatedStyle = useAnimatedStyle(() => {
+		const borderTopRadius = interpolate(
+			animatedIndex.value,
+			[1, 2],
+			[20, 0],
+			Extrapolate.CLAMP
+		);
+		return {
+			borderTopLeftRadius: borderTopRadius,
+			borderTopRightRadius: borderTopRadius,
+		};
+	});
+	const leftIndicatorStyle = useMemo(
+		() => ({
+			...styles.indicator,
+			...styles.leftIndicator,
+		}),
 		[]
 	);
+	const leftIndicatorAnimatedStyle = useAnimatedStyle(() => {
+		const leftIndicatorRotate = interpolate(
+			animatedIndex.value,
+			[0, 1, 2],
+			[toRad(-30), 0, toRad(30)],
+			Extrapolate.CLAMP
+		);
+		return {
+			transform: transformOrigin(
+				{ x: 0, y: indicatorTransformOriginY.value },
+				{
+					rotate: `${leftIndicatorRotate}rad`,
+				},
+				{
+					translateX: -5,
+				}
+			),
+		};
+	});
+	const rightIndicatorStyle = useMemo(
+		() => ({
+			...styles.indicator,
+			...styles.rightIndicator,
+		}),
+		[]
+	);
+	const rightIndicatorAnimatedStyle = useAnimatedStyle(() => {
+		const rightIndicatorRotate = interpolate(
+			animatedIndex.value,
+			[0, 1, 2],
+			[toRad(30), 0, toRad(-30)],
+			Extrapolate.CLAMP
+		);
+		return {
+			transform: transformOrigin(
+				{ x: 0, y: indicatorTransformOriginY.value },
+				{
+					rotate: `${rightIndicatorRotate}rad`,
+				},
+				{
+					translateX: 5,
+				}
+			),
+		};
+	});
+	//#endregion
 
+	// render
 	return (
-		<View className="absolute bottom-10 w-full px-4">
-			{/* Button floating above the map */}
-			<CustomButton onPress={handlePresentModalPress} title="Present Modal" />
-
-			<BottomSheetModal
-				ref={bottomSheetModalRef}
-				index={1}
-				snapPoints={snapPoints}
-				onChange={handleSheetChanges}
-				backdropComponent={renderBackdrop}
-			>
-				<BottomSheetView className="flex-1 p-5 items-center">
-					<Text className="text-lg font-bold">Awesome 🎉</Text>
-					<Text>You are viewing the bottom sheet!</Text>
-				</BottomSheetView>
-			</BottomSheetModal>
-		</View>
+		<Animated.View
+			style={[containerStyle, containerAnimatedStyle]}
+			renderToHardwareTextureAndroid={true}
+		>
+			<Animated.View style={[leftIndicatorStyle, leftIndicatorAnimatedStyle]} />
+			<Animated.View
+				style={[rightIndicatorStyle, rightIndicatorAnimatedStyle]}
+			/>
+		</Animated.View>
 	);
 };
 
 export default CustomBottomSheet;
+
+const styles = StyleSheet.create({
+	header: {
+		alignContent: "center",
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundColor: "white",
+		paddingVertical: 14,
+		borderBottomWidth: 1,
+		borderBottomColor: "#fff",
+	},
+	indicator: {
+		position: "absolute",
+		width: 10,
+		height: 4,
+		backgroundColor: "#999",
+	},
+	leftIndicator: {
+		borderTopStartRadius: 2,
+		borderBottomStartRadius: 2,
+	},
+	rightIndicator: {
+		borderTopEndRadius: 2,
+		borderBottomEndRadius: 2,
+	},
+});
