@@ -3,6 +3,7 @@ import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
 import { icons, images } from "@/constants";
 import { useUserMode } from "@/contexts/UserModeContext";
+import { account } from "@/lib/appwrite";
 import { useSignIn, useSSO } from "@clerk/clerk-expo";
 import * as AuthSession from "expo-auth-session";
 import { useRouter } from "expo-router";
@@ -31,6 +32,8 @@ export default function SignIn() {
 	// Google SSO
 	const onPressGoogle = useCallback(async () => {
 		if (!selectedRole) return;
+		const currentUser = await account.get();
+
 		try {
 			const { createdSessionId, setActive } = await startSSOFlow({
 				strategy: "oauth_google",
@@ -50,22 +53,32 @@ export default function SignIn() {
 	// Email/Password Sign In
 	const onSignInPress = async () => {
 		if (!isLoaded || !selectedRole) return;
+		
+		
+		if (!email || !password) {
+			setError("Please enter both email and password.");
+			return;
+		}	
+		
 		try {
-			const signInAttempt = await signIn.create({
-				identifier: email,
-				password,
+			const session = await account.createEmailPasswordSession({
+				email,
+				password
 			});
-			if (signInAttempt.status === "complete") {
-				await setActive({ session: signInAttempt.createdSessionId });
-				// Set the selected mode in context
-				setMode(selectedRole);
-				router.replace("/(root)/(tabs)/home");
-			} else {
-				console.error(JSON.stringify(signInAttempt, null, 2));
-			}
+			
+
+			const currentUser = await account.get();
+			console.log("Sign-in successful:", session);
+			router.replace("/(root)/(tabs)/home");
+			// Set the selected mode in context
+			await setMode(selectedRole);
+
 		} catch (err: any) {
 			if (err.errors && err.errors.length > 0) setError(err.errors[0].message);
-			else setError("Sign in failed. Please try again.");
+			else {
+				setError(err.message);
+				console.error("Sign-in error:", err);
+			}
 		}
 	};
 
@@ -152,6 +165,7 @@ export default function SignIn() {
 				</Text>
 			</View>
 
+		
 			<InputField
 				iconName="mail-outline"
 				placeholder="your@email.com"
@@ -179,6 +193,7 @@ export default function SignIn() {
 				</TouchableOpacity>
 			</View>
 
+
 			<CustomButton
 				title="Sign In"
 				onPress={onSignInPress}
@@ -191,6 +206,16 @@ export default function SignIn() {
 				<Text className="mx-3 text-gray-500 font-semibold">OR</Text>
 				<View className="flex-1 h-[1px] bg-black" />
 			</View>
+
+			<CustomButton
+				title="Sign Up"
+				onPress={() => {
+					if (selectedRole) setMode(selectedRole);
+					router.replace("/(auth)/sign-up");
+				}}
+				className="rounded-2xl py-3 items-center mb-1"
+				bgVariant="default"
+			/>
 
 			<CustomButton
 				title="Sign in with Google"

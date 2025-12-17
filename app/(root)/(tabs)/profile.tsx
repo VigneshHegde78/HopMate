@@ -1,512 +1,316 @@
-// ProfileFromScratchNativeWind.tsx
+import CustomButton from "@/components/CustomButton";
+import DropdownComponent from "@/components/CustomDropDown";
+import ProfileFormInput from "@/components/FormInput";
+import { useUserMode } from "@/contexts/UserModeContext";
+import { account, tableDB } from "@/lib/appwrite";
+import { formatDateString } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
-
 import {
 	Alert,
-	FlatList,
-	Image,
-	KeyboardAvoidingView,
-	Modal,
-	Platform,
 	ScrollView,
 	Text,
 	TextInput,
 	TouchableOpacity,
 	View,
 } from "react-native";
+import { Query } from "react-native-appwrite";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-/**
- * ProfileFromScratchNativeWind.tsx
- * - Uses NativeWind (className Tailwind syntax) instead of StyleSheet
- * - No custom components used
- * - Avatar picker (sample avatars + device library)
- * - Edit / Save / Cancel flow
- *
- * Ensure you have nativewind configured in your project.
- */
+const Profile = () => {
+	const [profile, setProfile] = useState<any>(null);
+	const [loadingProfile, setLoadingProfile] = useState(true);
+	const { mode, setMode } = useUserMode();
+	const [isEditing, setIsEditing] = useState(false);
 
-const SAMPLE_AVATARS = [
-	"https://i.pravatar.cc/300?img=1",
-	"https://i.pravatar.cc/300?img=2",
-	"https://i.pravatar.cc/300?img=3",
-	"https://i.pravatar.cc/300?img=4",
-	"https://i.pravatar.cc/300?img=5",
-];
+	const profileInputs = [
+		{ label: "Full Name", key: "Name" },
+		{ label: "Phone Number", key: "PhoneNo" },
+	];
 
-type ProfileState = {
-	fullName: string;
-	username: string;
-	email: string;
-	phone: string;
-	discord: string;
-	dob: string;
-	gender: string;
-	about: string;
-	avatarUri?: string | null;
-	memberSince?: string | null;
-};
-
-const initialData: ProfileState = {
-	fullName: "John Scott",
-	username: "johnscott86",
-	email: "john@example.com",
-	phone: "09876543210",
-	discord: "john#1234",
-	dob: "1995-01-10",
-	gender: "Not specified",
-	about: "A travel enthusiast who loves exploring new places.",
-	avatarUri: SAMPLE_AVATARS[0],
-	memberSince: "2024-08-12",
-};
-
-export default function ProfileFromScratchNativeWind() {
-	const [profile, setProfile] = useState<ProfileState>(initialData);
-	const [editing, setEditing] = useState(false);
-	const [avatarModalVisible, setAvatarModalVisible] = useState(false);
-	const [tempProfile, setTempProfile] = useState<ProfileState>(initialData);
-	const [showDOBPicker, setShowDOBPicker] = useState(false);
-
-	useEffect(() => {
-		// request media library permissions for expo-image-picker
-		(async () => {
-			if (Platform.OS !== "web") {
-				const { status } =
-					await ImagePicker.requestMediaLibraryPermissionsAsync();
-				if (status !== "granted") {
-					console.log("Image library permission not granted");
-				}
-			}
-		})();
-	}, []);
-
-	useEffect(() => {
-		if (editing) setTempProfile(profile);
-	}, [editing, profile]);
-
-	const pickImageFromDevice = async () => {
+	// Fetch profile
+	const fetchProfile = async () => {
 		try {
-			const result = await ImagePicker.launchImageLibraryAsync({
-				mediaTypes: ImagePicker.MediaTypeOptions.Images,
-				quality: 0.8,
-				allowsEditing: true,
-				aspect: [1, 1],
+			const authUser = await account.get();
+
+			const res = await tableDB.listRows({
+				databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
+				tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID!,
+				queries: [Query.equal("UserID", authUser.$id)], // ✅ Correct
 			});
 
-			// @ts-ignore - result has cancelled for older SDKs
-			if (!result.cancelled) {
-				// result.uri for older SDKs, result.assets[0].uri for newer
-				// handle both shapes
-				// @ts-ignore
-				const uri = result.uri ?? result.assets?.[0]?.uri;
-				if (uri) {
-					setTempProfile((p) => ({ ...p, avatarUri: uri }));
-					setAvatarModalVisible(false);
-				}
+			if (res.total > 0) {
+				setProfile(res.rows[0]); // Use documents array
+			} else {
+				Alert.alert("Profile not found!");
 			}
-		} catch (err) {
-			console.log("image pick error", err);
+		} catch (error) {
+			console.error("Failed to fetch profile:", error);
+		} finally {
+			setLoadingProfile(false);
 		}
 	};
 
-	const onSelectAvatar = (uri: string) => {
-		setTempProfile((p) => ({ ...p, avatarUri: uri }));
-		setAvatarModalVisible(false);
+	useEffect(() => {
+		fetchProfile();
+	}, []);
+
+	// Save profile
+	const handleSave = async () => {
+		if (!profile || !profile.$id) {
+			Alert.alert("Error", "Profile not found!");
+			return;
+		}
+
+		try {
+			const updated = await tableDB.updateRow({
+				databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
+				tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID!,
+				rowId: profile.$id, // Use the actual Appwrite row id
+				data: {
+					Name: profile.Name || "",
+					PhoneNo: profile.PhoneNo || "",
+					AboutMe: profile.AboutMe || "",
+					Gender: profile.Gender || "",
+					DateOfBirth: profile.DateOfBirth || "",
+				},
+			});
+
+			console.log("Update response:", updated);
+			Alert.alert("Success", "Profile updated successfully!");
+			setIsEditing(false);
+			fetchProfile();
+		} catch (error) {
+			console.error("Failed to update profile:", error);
+			Alert.alert("Error", "Failed to update profile");
+		}
 	};
 
-	const onSave = () => {
-		setProfile(tempProfile);
-		setEditing(false);
-		Alert.alert("Saved", "Profile changes saved locally.");
-	};
+	if (loadingProfile) {
+		return (
+			<SafeAreaView className="flex-1 justify-center items-center">
+				<Text className="text-lg font-figtreeBold">Loading profile...</Text>
+			</SafeAreaView>
+		);
+	}
 
-	const onCancel = () => {
-		setTempProfile(profile);
-		setEditing(false);
-	};
+	if (isEditing) {
+		return (
+			<SafeAreaView className="flex-1 px-5">
+				<View className="flex-row items-center justify-between my-5">
+					<Text className="text-2xl font-figtreeBold my-5">Edit Profile</Text>
+					<CustomButton
+						title="Save"
+						onPress={handleSave}
+						className="rounded-full items-center text-white bg-[#0286fb] pl-5"
+						IconLeft={() => <MaterialIcons name="save" size={20} color="white" />}
+					/>
+				</View>
 
-	const renderField = (
-		label: string,
-		value: string,
-		onChange: (v: string) => void,
-		placeholder?: string,
-		keyboardType?: any,
-		multiline = false
-	) => (
-		<SafeAreaView className="mb-3">
-			<Text className="text-xs text-gray-500 mb-1 font-semibold">{label}</Text>
-			{editing ? (
-				<TextInput
-					className={`border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white ${
-						multiline ? "min-h-[84px] text-top" : ""
-					}`}
-					value={value}
-					onChangeText={onChange}
-					placeholder={placeholder}
-					keyboardType={keyboardType}
-					multiline={multiline}
-				/>
-			) : (
-				<Text className="text-sm text-gray-700">{value || "Not Provided"}</Text>
-			)}
-		</SafeAreaView>
-	);
-
-	return (
-		<KeyboardAvoidingView
-			behavior={Platform.OS === "ios" ? "padding" : undefined}
-			className="flex-1 bg-slate-50"
-		>
-			<ScrollView
-				contentContainerStyle={{ paddingBottom: 36 }}
-				className="px-5 py-4"
-			>
-				{/* Header */}
-				<View className="flex-row items-center justify-between mb-4">
-					<Text className="text-2xl font-bold text-slate-900">Profile</Text>
-
-					<View className="flex-row items-center">
-						<TouchableOpacity
-							activeOpacity={0.85}
-							onPress={() => {
-								if (editing) onSave();
-								else setEditing(true);
-							}}
-							className={`flex-row items-center px-3 py-2 rounded-full ${
-								editing ? "bg-blue-600" : "bg-yellow-400"
-							}`}
-						>
-							<MaterialIcons
-								name={editing ? "save" : "edit"}
-								size={18}
-								color="#fff"
-							/>
-							<Text className="ml-2 text-sm font-semibold text-white">
-								{editing ? "Save" : "Edit"}
-							</Text>
-						</TouchableOpacity>
-
-						{editing && (
-							<TouchableOpacity
-								onPress={onCancel}
-								className="ml-3 flex-row items-center px-3 py-2 rounded-full bg-white border border-gray-200"
-							>
-								<MaterialIcons name="close" size={18} color="#374151" />
-								<Text className="ml-2 text-sm font-semibold text-gray-700">
-									Cancel
+				<View className="flex-col items-start justify-center bg-white rounded-lg shadow-sm shadow-neutral-300 py-5 my-3 w-full">
+					<View className="w-full px-5">
+						{/* {profileInputs.map((input) => (
+							<View key={input.label} className="mb-4">
+								<Text className="font-figtreeSemiBold text-gray-800 mb-1">
+									{input.label}
 								</Text>
-							</TouchableOpacity>
-						)}
-					</View>
-				</View>
-
-				{/* Avatar + name */}
-				<View className="items-center mb-6">
-					<TouchableOpacity
-						activeOpacity={0.85}
-						onPress={() => {
-							if (editing) setAvatarModalVisible(true);
-						}}
-						className="relative"
-					>
-						<Image
-							source={{
-								uri: editing
-									? tempProfile.avatarUri || ""
-									: profile.avatarUri || "",
-							}}
-							className="w-28 h-28 rounded-full border-2 border-sky-100 bg-white"
-							resizeMode="cover"
-						/>
-						{editing && (
-							<View className="absolute -right-2 -bottom-2 bg-blue-600 w-9 h-9 rounded-full border-2 border-white items-center justify-center">
-								<MaterialIcons name="camera-alt" size={16} color="#fff" />
+								<ProfileFormInput
+									placeholder={input.label}
+									defaultValue={profile?.[input.key] || ""}
+									onChangeText={(text) =>
+										setProfile({ ...profile, [input.key]: text })
+									}
+								/>
 							</View>
-						)}
-					</TouchableOpacity>
-
-					<View className="mt-3 items-center">
-						<Text className="text-lg font-bold text-slate-900">
-							{editing ? tempProfile.fullName : profile.fullName}
-						</Text>
-						<Text className="text-sm text-gray-500 mt-1">
-							@{editing ? tempProfile.username : profile.username}
-						</Text>
-					</View>
-				</View>
-
-				{/* Card */}
-				<View className="bg-white rounded-xl p-4 shadow-sm">
-					{renderField(
-						"Full name",
-						editing ? tempProfile.fullName : profile.fullName,
-						(v) => setTempProfile((p) => ({ ...p, fullName: v })),
-						"Your name"
-					)}
-
-					{renderField(
-						"Username",
-						editing ? tempProfile.username : profile.username,
-						(v) => setTempProfile((p) => ({ ...p, username: v })),
-						"username"
-					)}
-
-					<View className="flex-row space-x-3">
-						<View className="flex-1">
-							{renderField(
-								"Email",
-								editing ? tempProfile.email : profile.email,
-								(v) => setTempProfile((p) => ({ ...p, email: v })),
-								"email@example.com",
-								"email-address"
-							)}
-						</View>
-
-						<View className="flex-1">
-							{renderField(
-								"Phone",
-								editing ? tempProfile.phone : profile.phone,
-								(v) => setTempProfile((p) => ({ ...p, phone: v })),
-								"phone number",
-								"phone-pad"
-							)}
-						</View>
-					</View>
-
-					<View className="flex-row space-x-3">
-						<View className="mb-3 mr-5">
-							<Text className="text-xs text-gray-500 mb-1 font-semibold">
-								DOB
-							</Text>
-
-							{editing ? (
-								<>
-									<TouchableOpacity
-										onPress={() => setShowDOBPicker(true)}
-										className="border border-gray-200 bg-white px-3 py-2 rounded-lg"
-									>
-										<Text className="text-sm text-gray-700">
-											{tempProfile.dob
-												? new Date(tempProfile.dob).toDateString()
-												: "Select date"}
-										</Text>
-									</TouchableOpacity>
-
-									{showDOBPicker && (
-										<DateTimePicker
-											value={
-												tempProfile.dob ? new Date(tempProfile.dob) : new Date()
-											}
-											mode="date"
-											display={Platform.OS === "ios" ? "spinner" : "default"}
-											onChange={(event, selectedDate) => {
-												if (Platform.OS === "android") setShowDOBPicker(false);
-
-												if (selectedDate) {
-													const iso = selectedDate.toISOString().split("T")[0]; // YYYY-MM-DD
-													setTempProfile((p) => ({ ...p, dob: iso }));
-												}
+						))} */}
+						<View>
+							{profileInputs.map((input) => (
+								<View key={input.key} className="mb-4">
+									<Text className="font-figtreeSemiBold text-gray-800 mb-1">{input.label}</Text>
+									{input.key === "PhoneNo" ? (
+										<TextInput
+											placeholder="Enter Phone Number"
+											keyboardType="number-pad" // Ensures only numeric input
+											value={profile?.PhoneNo || ""}
+											onChangeText={(text) => {
+												// Allow only numeric input
+												const numericValue = text.replace(/[^0-9]/g, "");
+												setProfile({ ...profile, PhoneNo: numericValue });
 											}}
+											className="flex w-full h-12 border border-gray-300 rounded-md"
+										/>
+									) : (
+										<ProfileFormInput
+											placeholder={input.label}
+											defaultValue={profile?.[input.key] || ""}
+											onChangeText={(text) => setProfile({ ...profile, [input.key]: text })}
 										/>
 									)}
-								</>
-							) : (
-								<Text className="text-sm text-gray-700">
-									{tempProfile.dob
-										? new Date(tempProfile.dob).toDateString()
-										: "Not Provided"}
-								</Text>
-							)}
+								</View>
+							))}
 						</View>
 
-						<View className="flex-1">
-							<View className="mb-3">
-								<Text className="text-xs text-gray-500 mb-1 font-semibold">
-									Gender
-								</Text>
-								{editing ? (
-									<View className="flex-row items-center">
-										<TouchableOpacity
-											className={`px-3 py-2 rounded-full border border-gray-200 mr-2 ${
-												tempProfile.gender === "Male"
-													? "bg-blue-600 border-blue-600"
-													: "bg-white"
-											}`}
-											onPress={() =>
-												setTempProfile((p) => ({ ...p, gender: "Male" }))
-											}
-										>
-											<Text
-												className={`text-sm font-semibold ${
-													tempProfile.gender === "Male"
-														? "text-white"
-														: "text-gray-700"
-												}`}
-											>
-												Male
-											</Text>
-										</TouchableOpacity>
 
-										<TouchableOpacity
-											className={`px-3 py-2 rounded-full border border-gray-200 mr-2 ${
-												tempProfile.gender === "Female"
-													? "bg-blue-600 border-blue-600"
-													: "bg-white"
-											}`}
-											onPress={() =>
-												setTempProfile((p) => ({ ...p, gender: "Female" }))
-											}
-										>
-											<Text
-												className={`text-sm font-semibold ${
-													tempProfile.gender === "Female"
-														? "text-white"
-														: "text-gray-700"
-												}`}
-											>
-												Female
-											</Text>
-										</TouchableOpacity>
+						<Text className="font-figtreeSemiBold text-gray-800 mb-1">About Me</Text>
+						<TextInput
+							placeholder="Add a description about yourself"
+							className="flex w-full h-20 border border-gray-300 rounded-md mb-4"
+							value={profile?.AboutMe || ""}
+							onChangeText={(text) => setProfile({ ...profile, AboutMe: text })}
+						/>
 
-										<TouchableOpacity
-											className={`px-3 py-2 rounded-full border border-gray-200 ${
-												tempProfile.gender === "Not specified"
-													? "bg-blue-600 border-blue-600"
-													: "bg-white"
-											}`}
-											onPress={() =>
-												setTempProfile((p) => ({
-													...p,
-													gender: "Not specified",
-												}))
-											}
-										>
-											<Text
-												className={`text-sm font-semibold ${
-													tempProfile.gender === "Not specified"
-														? "text-white"
-														: "text-gray-700"
-												}`}
-											>
-												Other
-											</Text>
-										</TouchableOpacity>
-									</View>
-								) : (
-									<Text className="text-sm text-gray-700">
-										{profile.gender || "Not specified"}
-									</Text>
-								)}
-							</View>
-						</View>
-					</View>
+						<Text className="font-figtreeSemiBold text-gray-800 mb-0.5">Date of Birth</Text>
+						<TextInput
+							placeholder="YYYY-MM-DD"
+							className="flex w-full h-12 border border-gray-300 rounded-md"
+							value={profile?.DateOfBirth || ""}
+							onChangeText={(text) =>
+								setProfile({ ...profile, DateOfBirth: text })
+							}
+						/>
 
-					{renderField(
-						"About",
-						editing ? tempProfile.about : profile.about,
-						(v) => setTempProfile((p) => ({ ...p, about: v })),
-						"A short bio",
-						undefined,
-						true
-					)}
-
-					<View className="mt-2">
-						<Text className="text-xs text-gray-400">Member since</Text>
-						<Text className="text-sm text-gray-600">
-							{profile.memberSince || "-"}
-						</Text>
+						<Text className="font-figtreeSemiBold text-gray-800 mb-0.5 mt-4">Gender</Text>
+						<DropdownComponent
+							selectedValue={profile?.Gender || ""}
+							onValueChange={(value) => setProfile({ ...profile, Gender: value })}
+						/>
 					</View>
 				</View>
+			</SafeAreaView>
+		);
+	}
 
-				{/* Footer actions */}
-				<View className="mt-5">
+	return (
+		<SafeAreaView className="flex-1">
+			<ScrollView className="px-5" contentContainerStyle={{ paddingBottom: 120 }}>
+				<Text className="text-2xl font-figtreeBold my-5">Profile</Text>
+
+				<Text className="text-lg font-figtreeBold">{profile?.Name || "John Scott"}</Text>
+				<Text className="text-sm font-figtreeSemiBold text-gray-500 mb-5">
+					{profile?.userName || "JohnScott86"}
+				</Text>
+
+				<CustomButton
+					title="Edit Profile"
+					onPress={() => setIsEditing(true)}
+					className="mb-3 rounded-full text-white bg-[#fbc02b]"
+					IconLeft={() => <MaterialIcons name="create" size={20} color="white" />}
+				/>
+
+				{/* Mode Switch */}
+				<View className="flex-row mb-5 bg-gray-100 rounded-full p-1">
 					<TouchableOpacity
-						onPress={() =>
-							Alert.alert(
-								"Logout",
-								"This will sign you out (connect to your auth)."
-							)
-						}
-						className="py-3"
+						onPress={() => setMode("rider")}
+						className={`flex-1 py-3 px-4 rounded-full ${mode === "rider" ? "bg-[#0286FF]" : "bg-transparent"
+							}`}
 					>
-						<Text className="text-red-500 font-bold text-center">Logout</Text>
+						<Text
+							className={`text-center font-figtreeSemiBold ${mode === "rider" ? "text-white" : "text-gray-600"
+								}`}
+						>
+							User Mode
+						</Text>
+					</TouchableOpacity>
+					<TouchableOpacity
+						onPress={() => setMode("driver")}
+						className={`flex-1 py-3 px-4 rounded-full ${mode === "driver" ? "bg-[#0286FF]" : "bg-transparent"
+							}`}
+					>
+						<Text
+							className={`text-center font-figtreeSemiBold ${mode === "driver" ? "text-white" : "text-gray-600"
+								}`}
+						>
+							Driver Mode
+						</Text>
+					</TouchableOpacity>
+				</View>
+
+				{/* Profile Details */}
+				<View className="flex flex-col items-start justify-center bg-white rounded-lg shadow-sm shadow-neutral-300 px-5 py-3 mb-5">
+					<Text className="font-figtreeSemiBold text-gray-800">About me</Text>
+					<Text className="font-figtreeMedium text-gray-500 mt-1">
+						{profile?.AboutMe || "Not Found"}
+					</Text>
+
+					<Text className="font-figtreeSemiBold text-gray-800 mt-3">Gender</Text>
+					<Text className="font-figtreeMedium text-gray-500 mt-1">
+						{profile?.Gender || "Not Found"}
+					</Text>
+
+					<Text className="font-figtreeSemiBold text-gray-800 mt-3">DOB</Text>
+					<Text className="font-figtreeMedium text-gray-500 mt-1">
+						{profile?.DateOfBirth || "Not Found"}
+					</Text>
+
+					<Text className="font-figtreeSemiBold text-gray-800 mt-3">Member since</Text>
+					<Text className="font-figtreeMedium text-gray-500 mt-1">
+						{formatDateString(profile?.MemberSince) || "Not Found"}
+					</Text>
+
+					<Text className="font-figtreeSemiBold text-gray-800 mt-3">Phone No.</Text>
+					<Text className="font-figtreeMedium text-gray-500 mt-1">
+						{profile?.PhoneNo || "Not Found"}
+					</Text>
+
+					<Text className="font-figtreeSemiBold text-gray-800 mt-3">Email</Text>
+					<Text className="font-figtreeMedium text-gray-500 mt-1">
+						{profile?.Email || "Not Found"}
+					</Text>
+
+					<TouchableOpacity
+						className="mb-3 mt-3"
+						onPress={async () => {
+							try {
+								// Try deleting the session if it exists
+								await account.deleteSessions();
+								console.log('User logged out successfully.');
+							} catch (error: any) {
+								if (error.message.includes('Session not found')) {
+									console.log('No active session found, continuing logout.');
+								} else {
+									console.error('Logout failed:', error);
+								}
+							} finally {
+								// Always navigate to Sign-In
+								router.replace("/(auth)/sign-in");
+							}
+
+						}}
+					>
+						<Text className="font-figtreeBold text-red-500">Logout</Text>
 					</TouchableOpacity>
 
 					<TouchableOpacity
-						onPress={() =>
-							Alert.alert(
-								"Delete account",
-								"This will delete your account. Hook to backend."
-							)
-						}
-						className="py-3"
+						className="mb-1"
+						onPress={async () => {
+							try {
+								// Try deleting the session if it exists
+								await account.deleteSessions();
+								console.log('User logged out successfully.');
+							} catch (error: any) {
+								if (error.message.includes('Session not found')) {
+									console.log('No active session found, continuing logout.');
+								} else {
+									console.error('Logout failed:', error);
+								}
+							} finally {
+								// Always navigate to Sign-In
+								router.replace("/(auth)/sign-in");
+							}
+
+						}}
 					>
-						<Text className="text-red-500 font-bold text-center">
+						<Text className="font-figtreeBold text-red-500">
 							Delete Account
 						</Text>
 					</TouchableOpacity>
+
+
 				</View>
-
-				{/* Avatar modal */}
-				<Modal visible={avatarModalVisible} animationType="slide" transparent>
-					<View className="flex-1 justify-end bg-black/40">
-						<View className="bg-white rounded-t-2xl p-4">
-							<View className="flex-row justify-between items-center mb-3">
-								<Text className="text-lg font-bold">Choose avatar</Text>
-								<TouchableOpacity onPress={() => setAvatarModalVisible(false)}>
-									<MaterialIcons name="close" size={20} color="#374151" />
-								</TouchableOpacity>
-							</View>
-
-							<FlatList
-								horizontal
-								data={SAMPLE_AVATARS}
-								keyExtractor={(i) => i}
-								renderItem={({ item }) => (
-									<TouchableOpacity
-										className="mr-3"
-										onPress={() => onSelectAvatar(item)}
-									>
-										<Image
-											source={{ uri: item }}
-											className="w-20 h-20 rounded-full"
-										/>
-									</TouchableOpacity>
-								)}
-								contentContainerStyle={{ paddingVertical: 8 }}
-							/>
-
-							<View className="mt-4">
-								<TouchableOpacity
-									onPress={pickImageFromDevice}
-									className="flex-row items-center justify-center bg-blue-600 px-4 py-3 rounded-full"
-								>
-									<MaterialIcons name="photo-library" size={18} color="#fff" />
-									<Text className="text-white ml-2 font-semibold">
-										Pick from device
-									</Text>
-								</TouchableOpacity>
-
-								<TouchableOpacity
-									onPress={() => {
-										setTempProfile((p) => ({ ...p, avatarUri: null }));
-										setAvatarModalVisible(false);
-									}}
-									className="flex-row items-center justify-center bg-white border border-gray-200 px-4 py-3 rounded-full mt-3"
-								>
-									<MaterialIcons name="delete" size={18} color="#374151" />
-									<Text className="ml-2 text-gray-700 font-semibold">
-										Remove avatar
-									</Text>
-								</TouchableOpacity>
-							</View>
-						</View>
-					</View>
-				</Modal>
 			</ScrollView>
-		</KeyboardAvoidingView>
+		</SafeAreaView>
 	);
-}
+};
+
+export default Profile;
