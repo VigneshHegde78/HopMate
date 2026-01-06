@@ -1,91 +1,124 @@
 import * as Location from "expo-location";
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+	forwardRef,
+	useEffect,
+	useImperativeHandle,
+	useRef,
+	useState,
+} from "react";
 import { StyleSheet, View } from "react-native";
 import MapView, { Marker, type Region } from "react-native-maps";
 
-const fallbackRegion: Region = {
-  latitude: 19.3036,
-  longitude: 72.8602,
-  latitudeDelta: 0.0922,
-  longitudeDelta: 0.0421,
+export type MapController = {
+	animateTo: (
+		coord: { latitude: number; longitude: number },
+		durationMs?: number
+	) => void;
 };
 
-export default function MapComponent() {
-  const mapRef = useRef<MapView>(null);
-  const [initialRegion, setInitialRegion] = useState<Region | null>(null);
-  const [currentRegion, setCurrentRegion] = useState<Region | null>(null);
+const fallbackRegion: Region = {
+	latitude: 19.3036,
+	longitude: 72.8602,
+	latitudeDelta: 0.0922,
+	longitudeDelta: 0.0421,
+};
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          setInitialRegion(fallbackRegion);
-          return;
-        }
-        const loc = await Location.getCurrentPositionAsync({});
-        const { latitude, longitude } = loc.coords;
-        setInitialRegion({
-          latitude,
-          longitude,
-          latitudeDelta: fallbackRegion.latitudeDelta,
-          longitudeDelta: fallbackRegion.longitudeDelta,
-        });
-      } catch {
-        setInitialRegion(fallbackRegion);
-      }
-    })();
-  }, []);
+export default forwardRef<
+	MapController,
+	{ destination?: { latitude: number; longitude: number; title?: string } }
+>(function MapComponent({ destination }, ref) {
+	const mapRef = useRef<MapView>(null);
+	const [initialRegion, setInitialRegion] = useState<Region | null>(null);
+	// Keep local region if needed later; not used currently
 
-  if (!initialRegion) {
-    return <View style={styles.container} />;
-  }
+	useImperativeHandle(ref, () => ({
+		animateTo: (coord, durationMs = 600) => {
+			if (!coord || !mapRef.current) return;
+			const latitudeDelta = 0.02;
+			const longitudeDelta = 0.02;
+			mapRef.current.animateToRegion(
+				{ ...coord, latitudeDelta, longitudeDelta },
+				durationMs
+			);
+		},
+	}));
 
-  return (
-    <View style={styles.container}>
-      <MapView
-        style={styles.map}
-        initialRegion={initialRegion}
-        customMapStyle={[
-          {
-            elementType: "showsMyLocationButton",
-            stylers: [{ visibility: "off" }],
-          },
-        ]}
-        mapType="standard"
-        showsUserLocation
-        rotateEnabled={false}
-        scrollEnabled
-        zoomEnabled
-        pitchEnabled={false}
-        showsCompass
-        showsScale
-        showsTraffic={false}
-        showsBuildings={false}
-        showsIndoors={false}
-        showsPointsOfInterest={false}
-        userInterfaceStyle="light"
-        showsMyLocationButton
-      >
-        <Marker
-          coordinate={{
-            latitude: initialRegion.latitude,
-            longitude: initialRegion.longitude,
-          }}
-          title="My Location"
-          description="This is a marker"
-        />
-      </MapView>
-    </View>
-  );
-}
+	useEffect(() => {
+		(async () => {
+			try {
+				const { status } = await Location.requestForegroundPermissionsAsync();
+				if (status !== "granted") {
+					setInitialRegion(fallbackRegion);
+					return;
+				}
+				const loc = await Location.getCurrentPositionAsync({});
+				const { latitude, longitude } = loc.coords;
+				setInitialRegion({
+					latitude,
+					longitude,
+					latitudeDelta: fallbackRegion.latitudeDelta,
+					longitudeDelta: fallbackRegion.longitudeDelta,
+				});
+			} catch {
+				setInitialRegion(fallbackRegion);
+			}
+		})();
+	}, []);
+
+	if (!initialRegion) {
+		return <View style={styles.container} />;
+	}
+
+	return (
+		<View style={styles.container}>
+			<MapView
+				ref={mapRef}
+				style={styles.map}
+				initialRegion={initialRegion}
+				mapType="standard"
+				showsUserLocation
+				rotateEnabled={false}
+				scrollEnabled
+				zoomEnabled
+				pitchEnabled={false}
+				showsCompass
+				showsScale
+				showsTraffic={false}
+				showsBuildings={false}
+				showsIndoors={false}
+				showsPointsOfInterest
+				userInterfaceStyle="light"
+				showsMyLocationButton
+			>
+				<Marker
+					coordinate={{
+						latitude: initialRegion.latitude,
+						longitude: initialRegion.longitude,
+					}}
+					title="My Location"
+				/>
+
+				{destination ? (
+					<Marker
+						coordinate={{
+							latitude: destination.latitude,
+							longitude: destination.longitude,
+						}}
+						title={destination.title || "Destination"}
+						pinColor="#2e7d32"
+					/>
+				) : null}
+			</MapView>
+		</View>
+	);
+});
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    width: "100%",
-    height: "100%",
-  },
+	container: {
+		flex: 1,
+	},
+	map: {
+		width: "100%",
+		height: "100%",
+	},
 });

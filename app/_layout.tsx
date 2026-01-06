@@ -4,6 +4,7 @@ import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
 import { useEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -33,14 +34,16 @@ export default function RootLayout() {
 	if (!loaded) return null;
 
 	return (
-		<ClerkProvider tokenCache={tokenCache}>
-			<UserModeProvider>
-				<Stack>
-					<Stack.Screen name="index" options={{ headerShown: false }} />
-					<Stack.Screen name="(root)" options={{ headerShown: false }} />
-					<Stack.Screen name="(auth)" options={{ headerShown: false }} />
-				</Stack>
-			</UserModeProvider>
-		</ClerkProvider>
+		<GestureHandlerRootView style={{ flex: 1 }}>
+			<ClerkProvider tokenCache={tokenCache}>
+				<UserModeProvider>
+					<Stack>
+						<Stack.Screen name="index" options={{ headerShown: false }} />
+						<Stack.Screen name="(root)" options={{ headerShown: false }} />
+						<Stack.Screen name="(auth)" options={{ headerShown: false }} />
+					</Stack>
+				</UserModeProvider>
+			</ClerkProvider>
+		</GestureHandlerRootView>
 	);
 }
