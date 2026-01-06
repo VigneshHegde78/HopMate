@@ -40,16 +40,10 @@ function DestinationSearchBar({
 	const [detailsLoading, setDetailsLoading] = useState(false);
 	const [statusMsg, setStatusMsg] = useState<string | null>(null);
 
-	// Debug: log API key status once
 	useEffect(() => {
 		if (!apiKey) {
 			console.warn(
 				"⚠️ GEOAPIFY_API_KEY is undefined. Set EXPO_PUBLIC_GEOAPIFY_API_KEY in your .env file."
-			);
-		} else {
-			console.log(
-				"✓ Geoapify API key loaded:",
-				apiKey.substring(0, 10) + "..."
 			);
 		}
 	}, [apiKey]);
@@ -70,33 +64,39 @@ function DestinationSearchBar({
 			try {
 				setLoading(true);
 				setStatusMsg(null);
-				const url = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
-				url.searchParams.set("input", query);
-				url.searchParams.set("key", apiKey);
-				url.searchParams.set("language", "en");
-				url.searchParams.set("limit", "5");
+				const url = new URL(
+					`https://api.geoapify.com/v1/geocode/autocomplete?text=${query}&apiKey=${apiKey}`
+				);
 
 				const res = await fetch(url.toString(), { signal: controller.signal });
 				const data = await res.json();
-				if (data.results && Array.isArray(data.results)) {
-					const geoapifyResults = data.results.map((r: any) => ({
-						place_id: r.place_id,
-						description: r.formatted,
-						structured_formatting: {
-							main_text: r.address_line1 || r.name || r.formatted,
-							secondary_text: r.address_line2 || r.country || "",
-						},
-					})) as Prediction[];
+
+				// FIX 1: Geoapify returns "features", not "results"
+				if (data.features && Array.isArray(data.features)) {
+					const geoapifyResults = data.features.map((feature: any) => {
+						// FIX 2: Data is inside "properties"
+						const props = feature.properties;
+						return {
+							place_id: props.place_id,
+							description: props.formatted,
+							structured_formatting: {
+								main_text: props.address_line1 || props.name || props.formatted,
+								secondary_text: props.address_line2 || props.country || "",
+							},
+						};
+					}) as Prediction[];
 					setPredictions(geoapifyResults);
 					setStatusMsg(null);
 				} else {
-					console.warn("Geoapify Autocomplete error:", data.error || data);
+					console.warn("Geoapify Autocomplete error:", data);
 					setPredictions([]);
-					setStatusMsg(data.error || "No results");
+					setStatusMsg("No results found");
 				}
-			} catch (e) {
-				console.warn("Geoapify Autocomplete error", e);
-				setStatusMsg("Network error");
+			} catch (e: any) {
+				if (e.name !== "AbortError") {
+					console.warn("Geoapify Autocomplete error", e);
+					setStatusMsg("Network error");
+				}
 			} finally {
 				setLoading(false);
 			}
@@ -113,24 +113,31 @@ function DestinationSearchBar({
 		try {
 			const url = new URL("https://api.geoapify.com/v1/geocode/search");
 			url.searchParams.set("text", p.description);
-			url.searchParams.set("key", apiKey);
+			url.searchParams.set("apiKey", apiKey); // Note: param is usually 'apiKey', not 'key' for Geoapify, though some endpoints accept both
 			url.searchParams.set("limit", "1");
+
 			const res = await fetch(url.toString());
 			const data = await res.json();
-			if (data.results && data.results.length > 0) {
-				const result = data.results[0];
+
+			// FIX 3: Parse "features" for the selection logic as well
+			if (data.features && data.features.length > 0) {
+				const result = data.features[0];
+				const props = result.properties;
+
 				onPlaceSelected({
-					latitude: result.lat,
-					longitude: result.lon,
-					name: result.name || result.address_line1,
-					address: result.formatted,
+					latitude: props.lat,
+					longitude: props.lon,
+					name: props.name || props.address_line1,
+					address: props.formatted,
 				});
 				setQuery(p.description);
 				setPredictions([]);
 			} else {
-				console.warn("Geoapify Geocode error:", data.error || data);
-				setStatusMsg(data.error || null);
+				console.warn("Geoapify Geocode error:", data);
+				setStatusMsg("Details not found");
 			}
+		} catch (e) {
+			console.error(e);
 		} finally {
 			setDetailsLoading(false);
 		}
@@ -205,9 +212,10 @@ function DestinationSearchBar({
 			)}
 			{!loading &&
 				predictions.length === 0 &&
-				query.trim().length >= minLength && (
+				query.trim().length >= minLength &&
+				statusMsg && (
 					<View style={{ paddingVertical: 8 }}>
-						<Text style={{ color: "#666" }}>{statusMsg || "No results"}</Text>
+						<Text style={{ color: "#666" }}>{statusMsg}</Text>
 					</View>
 				)}
 			{detailsLoading && (
