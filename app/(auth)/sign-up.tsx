@@ -95,15 +95,15 @@ export default function SignUp() {
                 rowId: user.$id, // one row per user
                 data: {
                     UserID: user.$id,
-                    Name: user.name || username,
-                    Email: user.email,
-                    Role: selectedRole, // ✅ rider / driver
-                    AboutMe: "",
+                    Role: selectedRole,// ✅ rider / driver
+                    AboutMe: "Hello! I am using HopMate.",
                     Gender: "",
                     DateOfBirth: null,
+                    PhoneNo: null,
                     MemberSince: formatDateDDMMYYYY(new Date()),
-                    PhoneNo: "",
-                    userName: username.trim()
+                    Email: user.email,
+                    Name: user.name,
+                    userName: null
                 },
                 permissions: [
                     `read("user:${user.$id}")`,
