@@ -3,7 +3,7 @@ import DropdownComponent from "@/components/CustomDropDown";
 import ProfileFormInput from "@/components/FormInput";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { account, tableDB } from "@/lib/appwrite";
-import { formatDateString } from "@/lib/utils";
+import { formatDate, formatDOB_DDMMYYYY, isValidDDMMYYYY, isAbove18, isoToDDMMYYYY,ddmmyyyyToISO } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -42,6 +42,11 @@ const Profile = () => {
 
 			if (res.total > 0) {
 				setProfile(res.rows[0]); // Use documents array
+				setProfile({
+					...res.rows[0],
+
+					DateOfBirth: isoToDDMMYYYY(res.rows[0].DateOfBirth),
+				});
 			} else {
 				Alert.alert("Profile not found!");
 			}
@@ -70,10 +75,13 @@ const Profile = () => {
 				rowId: profile.$id, // Use the actual Appwrite row id
 				data: {
 					Name: profile.Name || "",
-					PhoneNo: profile.PhoneNo || "",
+					PhoneNo: profile.PhoneNo || null,
 					AboutMe: profile.AboutMe || "",
 					Gender: profile.Gender || "",
-					DateOfBirth: profile.DateOfBirth || "",
+					DateOfBirth: profile.DateOfBirth
+						? ddmmyyyyToISO(profile.DateOfBirth)
+						: null,
+					userName: profile.userName || "",
 				},
 			});
 
@@ -104,9 +112,7 @@ const Profile = () => {
 						title="Save"
 						onPress={handleSave}
 						className="rounded-full items-center text-white bg-[#0286fb] pl-5"
-						IconLeft={() => (
-							<MaterialIcons name="save" size={20} color="white" />
-						)}
+						IconLeft={() => <MaterialIcons name="save" size={20} color="white" />}
 					/>
 				</View>
 
@@ -129,9 +135,7 @@ const Profile = () => {
 						<View>
 							{profileInputs.map((input) => (
 								<View key={input.key} className="mb-4">
-									<Text className="font-figtreeSemiBold text-gray-800 mb-1">
-										{input.label}
-									</Text>
+									<Text className="font-figtreeSemiBold text-gray-800 mb-1">{input.label}</Text>
 									{input.key === "PhoneNo" ? (
 										<TextInput
 											placeholder="Enter Phone Number"
@@ -148,18 +152,22 @@ const Profile = () => {
 										<ProfileFormInput
 											placeholder={input.label}
 											defaultValue={profile?.[input.key] || ""}
-											onChangeText={(text) =>
-												setProfile({ ...profile, [input.key]: text })
-											}
+											onChangeText={(text) => setProfile({ ...profile, [input.key]: text })}
 										/>
 									)}
 								</View>
 							))}
 						</View>
 
-						<Text className="font-figtreeSemiBold text-gray-800 mb-1">
-							About Me
-						</Text>
+						<Text className="font-figtreeSemiBold text-gray-800 mb-1">User Name</Text>
+						<TextInput
+							placeholder="Enter User Name"
+							className="flex w-full  border border-gray-300 rounded-md mb-4"
+							value={profile?.userName || ""}
+							onChangeText={(text) => setProfile({ ...profile, userName: text })}
+						/>
+
+						<Text className="font-figtreeSemiBold text-gray-800 mb-1">About Me</Text>
 						<TextInput
 							placeholder="Add a description about yourself"
 							className="flex w-full h-20 border border-gray-300 rounded-md mb-4"
@@ -167,26 +175,32 @@ const Profile = () => {
 							onChangeText={(text) => setProfile({ ...profile, AboutMe: text })}
 						/>
 
-						<Text className="font-figtreeSemiBold text-gray-800 mb-0.5">
-							Date of Birth
-						</Text>
 						<TextInput
-							placeholder="YYYY-MM-DD"
-							className="flex w-full h-12 border border-gray-300 rounded-md"
+							placeholder="DD-MM-YYYY"
+							keyboardType="number-pad"
+							maxLength={10}
 							value={profile?.DateOfBirth || ""}
-							onChangeText={(text) =>
-								setProfile({ ...profile, DateOfBirth: text })
-							}
+							onChangeText={(text) => {
+								const formatted = formatDOB_DDMMYYYY(text);
+
+								if (formatted.length === 10) {
+									if (!isValidDDMMYYYY(formatted)) return;
+									if (!isAbove18(formatted)) {
+										Alert.alert("Invalid DOB", "You must be at least 18 years old.");
+										return;
+									}
+								}
+
+								setProfile({ ...profile, DateOfBirth: formatted });
+							}}
+							className="flex w-full h-12 border border-gray-300 rounded-md px-3"
 						/>
 
-						<Text className="font-figtreeSemiBold text-gray-800 mb-0.5 mt-4">
-							Gender
-						</Text>
+
+						<Text className="font-figtreeSemiBold text-gray-800 mb-0.5 mt-4">Gender</Text>
 						<DropdownComponent
 							selectedValue={profile?.Gender || ""}
-							onValueChange={(value) =>
-								setProfile({ ...profile, Gender: value })
-							}
+							onValueChange={(value) => setProfile({ ...profile, Gender: value })}
 						/>
 					</View>
 				</View>
@@ -196,27 +210,48 @@ const Profile = () => {
 
 	return (
 		<SafeAreaView className="flex-1">
-			<ScrollView
-				className="px-5"
-				contentContainerStyle={{ paddingBottom: 120 }}
-			>
+			<ScrollView className="px-5" contentContainerStyle={{ paddingBottom: 120 }}>
 				<Text className="text-2xl font-figtreeBold my-5">Profile</Text>
 
-				<Text className="text-lg font-figtreeBold">
-					{profile?.Name || "John Scott"}
-				</Text>
+				<Text className="text-lg font-figtreeBold">{profile?.Name || "John Scott"}</Text>
 				<Text className="text-sm font-figtreeSemiBold text-gray-500 mb-5">
-					{profile?.userName || "JohnScott86"}
+					{profile?.userName}
 				</Text>
 
 				<CustomButton
 					title="Edit Profile"
 					onPress={() => setIsEditing(true)}
 					className="mb-3 rounded-full text-white bg-[#fbc02b]"
-					IconLeft={() => (
-						<MaterialIcons name="create" size={20} color="white" />
-					)}
+					IconLeft={() => <MaterialIcons name="create" size={20} color="white" />}
 				/>
+
+				{/* Mode Switch */}
+				<View className="flex-row mb-5 bg-gray-100 rounded-full p-1">
+					<TouchableOpacity
+						onPress={() => setMode("rider")}
+						className={`flex-1 py-3 px-4 rounded-full ${mode === "rider" ? "bg-[#0286FF]" : "bg-transparent"
+							}`}
+					>
+						<Text
+							className={`text-center font-figtreeSemiBold ${mode === "rider" ? "text-white" : "text-gray-600"
+								}`}
+						>
+							User Mode
+						</Text>
+					</TouchableOpacity>
+					<TouchableOpacity
+						onPress={() => setMode("driver")}
+						className={`flex-1 py-3 px-4 rounded-full ${mode === "driver" ? "bg-[#0286FF]" : "bg-transparent"
+							}`}
+					>
+						<Text
+							className={`text-center font-figtreeSemiBold ${mode === "driver" ? "text-white" : "text-gray-600"
+								}`}
+						>
+							Driver Mode
+						</Text>
+					</TouchableOpacity>
+				</View>
 
 				{/* Profile Details */}
 				<View className="flex flex-col items-start justify-center bg-white rounded-lg shadow-sm shadow-neutral-300 px-5 py-3 mb-5">
@@ -225,28 +260,22 @@ const Profile = () => {
 						{profile?.AboutMe || "Not Found"}
 					</Text>
 
-					<Text className="font-figtreeSemiBold text-gray-800 mt-3">
-						Gender
-					</Text>
+					<Text className="font-figtreeSemiBold text-gray-800 mt-3">Gender</Text>
 					<Text className="font-figtreeMedium text-gray-500 mt-1">
 						{profile?.Gender || "Not Found"}
 					</Text>
 
 					<Text className="font-figtreeSemiBold text-gray-800 mt-3">DOB</Text>
 					<Text className="font-figtreeMedium text-gray-500 mt-1">
-						{profile?.DateOfBirth || "Not Found"}
+						{formatDate(profile?.DateOfBirth) || "Date of Birth not Found"}
 					</Text>
 
-					<Text className="font-figtreeSemiBold text-gray-800 mt-3">
-						Member since
-					</Text>
+					<Text className="font-figtreeSemiBold text-gray-800 mt-3">Member since</Text>
 					<Text className="font-figtreeMedium text-gray-500 mt-1">
-						{formatDateString(profile?.MemberSince) || "Not Found"}
+						{formatDate(profile?.MemberSince)}
 					</Text>
 
-					<Text className="font-figtreeSemiBold text-gray-800 mt-3">
-						Phone No.
-					</Text>
+					<Text className="font-figtreeSemiBold text-gray-800 mt-3">Phone No.</Text>
 					<Text className="font-figtreeMedium text-gray-500 mt-1">
 						{profile?.PhoneNo || "Not Found"}
 					</Text>
@@ -262,17 +291,18 @@ const Profile = () => {
 							try {
 								// Try deleting the session if it exists
 								await account.deleteSessions();
-								console.log("User logged out successfully.");
+								console.log('User logged out successfully.');
 							} catch (error: any) {
-								if (error.message.includes("Session not found")) {
-									console.log("No active session found, continuing logout.");
+								if (error.message.includes('Session not found')) {
+									console.log('No active session found, continuing logout.');
 								} else {
-									console.error("Logout failed:", error);
+									console.error('Logout failed:', error);
 								}
 							} finally {
 								// Always navigate to Sign-In
 								router.replace("/(auth)/sign-in");
 							}
+
 						}}
 					>
 						<Text className="font-figtreeBold text-red-500">Logout</Text>
@@ -284,23 +314,26 @@ const Profile = () => {
 							try {
 								// Try deleting the session if it exists
 								await account.deleteSessions();
-								console.log("User logged out successfully.");
+								console.log('User logged out successfully.');
 							} catch (error: any) {
-								if (error.message.includes("Session not found")) {
-									console.log("No active session found, continuing logout.");
+								if (error.message.includes('Session not found')) {
+									console.log('No active session found, continuing logout.');
 								} else {
-									console.error("Logout failed:", error);
+									console.error('Logout failed:', error);
 								}
 							} finally {
 								// Always navigate to Sign-In
 								router.replace("/(auth)/sign-in");
 							}
+
 						}}
 					>
 						<Text className="font-figtreeBold text-red-500">
 							Delete Account
 						</Text>
 					</TouchableOpacity>
+
+
 				</View>
 			</ScrollView>
 		</SafeAreaView>

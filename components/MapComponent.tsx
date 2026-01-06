@@ -86,7 +86,6 @@ export default forwardRef<
 				showsTraffic={false}
 				showsBuildings={false}
 				showsIndoors={false}
-				showsPointsOfInterest
 				userInterfaceStyle="light"
 				showsMyLocationButton
 			>
@@ -112,6 +111,79 @@ export default forwardRef<
 		</View>
 	);
 });
+
+// Removed duplicate styles declaration
+
+// Removed duplicate import and fallbackRegion declaration
+
+function SecondaryMapComponent() {
+	const mapRef = useRef<MapView>(null);
+	const [initialRegion, setInitialRegion] = useState<Region | null>(null);
+	const [currentRegion, setCurrentRegion] = useState<Region | null>(null);
+
+	useEffect(() => {
+		(async () => {
+			try {
+				const { status } = await Location.requestForegroundPermissionsAsync();
+				if (status !== "granted") {
+					setInitialRegion(fallbackRegion);
+					return;
+				}
+				const loc = await Location.getCurrentPositionAsync({});
+				const { latitude, longitude } = loc.coords;
+				setInitialRegion({
+					latitude,
+					longitude,
+					latitudeDelta: fallbackRegion.latitudeDelta,
+					longitudeDelta: fallbackRegion.longitudeDelta,
+				});
+			} catch {
+				setInitialRegion(fallbackRegion);
+			}
+		})();
+	}, []);
+
+	if (!initialRegion) {
+		return <View style={styles.container} />;
+	}
+
+	return (
+		<View style={styles.container}>
+			<MapView
+				style={styles.map}
+				initialRegion={initialRegion}
+				customMapStyle={[
+					{
+						elementType: "showsMyLocationButton",
+						stylers: [{ visibility: "off" }],
+					},
+				]}
+				mapType="standard"
+				showsUserLocation
+				rotateEnabled={false}
+				scrollEnabled
+				zoomEnabled
+				pitchEnabled={false}
+				showsCompass
+				showsScale
+				showsTraffic={false}
+				showsBuildings={false}
+				showsIndoors={false}
+				userInterfaceStyle="light"
+				showsMyLocationButton
+			>
+				<Marker
+					coordinate={{
+						latitude: initialRegion.latitude,
+						longitude: initialRegion.longitude,
+					}}
+					title="My Location"
+					description="This is a marker"
+				/>
+			</MapView>
+		</View>
+	);
+}
 
 const styles = StyleSheet.create({
 	container: {
