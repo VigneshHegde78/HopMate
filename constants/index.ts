@@ -13,6 +13,9 @@ import list from "../assets/icons/list.png";
 import lock from "../assets/icons/lock.png";
 import map from "../assets/icons/map.png";
 import marker from "../assets/icons/marker.png";
+import marker1 from "../assets/icons/marker-1.png";
+import marker2 from "../assets/icons/marker-2.png";
+import marker3 from "../assets/icons/marker-3.png";
 import out from "../assets/icons/out.png";
 import person from "../assets/icons/person.png";
 import pin from "../assets/icons/pin.png";
@@ -68,6 +71,9 @@ export const icons = {
 	lock,
 	map,
 	marker,
+	marker1,
+	marker2,
+	marker3,
 	out,
 	person,
 	rides,

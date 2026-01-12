@@ -1,3 +1,4 @@
+import { MaterialIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
 	ActivityIndicator,
@@ -162,17 +163,9 @@ function DestinationSearchBar({
 	return (
 		<View style={{ width: "100%" }}>
 			<View
-				style={{
-					backgroundColor: "#fff",
-					borderRadius: 12,
-					paddingHorizontal: 12,
-					paddingVertical: 10,
-					shadowColor: "#000",
-					shadowOpacity: 0.1,
-					shadowRadius: 10,
-					elevation: 4,
-				}}
+				className="flex-row items-center gap-1 rounded-3xl bg-white px-5 py-1.5"
 			>
+				<MaterialIcons name="search" size={24} color="#666" />
 				<TextInput
 					value={query}
 					onChangeText={setQuery}

@@ -8,47 +8,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export default function Home() {
 	const bottomSheetRef = useRef<BottomSheet>(null);
 	const mapRef = useRef<MapController>(null);
-	const snapPoints = useMemo(() => ["25%", "50%", "90%"], []);
+	const snapPoints = useMemo(() => ["40%", "60%", "90%"], []);
 	const insets = useSafeAreaInsets();
 	const [destination, setDestination] = useState<Destination | null>(null);
-	const drivers = [
+	const [radiusKm, setRadiusKm] = useState<number>(0.5); // 0.5km to 2km
+	const [nearbyDrivers, setNearbyDrivers] = useState<
 		{
-			id: 1,
-			first_name: "John",
-			last_name: "Doe",
-			left_seats: 4,
-			destination_location: { latitude: 19.3036, longitude: 72.8602 },
-		},
-		{
-			id: 2,
-			first_name: "Jane",
-			last_name: "Smith",
-			left_seats: 3,
-			destination_location: { latitude: 19.3123, longitude: 72.8715 },
-		},
-		{
-			id: 3,
-			first_name: "Mike",
-			last_name: "Johnson",
-			left_seats: 2,
-			destination_location: { latitude: 19.315, longitude: 72.865 },
-		},
-		{
-			id: 4,
-			first_name: "Emily",
-			last_name: "Davis",
-			left_seats: 1,
-			destination_location: { latitude: 19.32, longitude: 72.87 },
-		},
-		{
-			id: 5,
-			first_name: "David",
-			last_name: "Wilson",
-			left_seats: 5,
-			destination_location: { latitude: 19.31, longitude: 72.88 },
-		},
-		// Add more driver objects as needed
-	];
+			id: number;
+			title: string;
+			latitude: number;
+			longitude: number;
+			distance?: number;
+		}[]
+	>([]);
 
 	return (
 		<View style={{ flex: 1 }}>
@@ -63,6 +35,8 @@ export default function Home() {
 							}
 						: undefined
 				}
+				radiusKm={radiusKm}
+				onNearbyDriversChange={(drivers) => setNearbyDrivers(drivers)}
 			/>
 
 			{/* Search overlay */}
@@ -109,30 +83,47 @@ export default function Home() {
 							) : null}
 						</View>
 					) : null}
-					<Text className="font-figtreeBold text-xl  mb-2">
-						Available Drivers
-					</Text>
-					<Text className="font-figtreeLight text-gray-600 mb-3">
-						Select a driver from the list below to view more details.
-					</Text>
+					<View className="mb-3">
+						<Text className="font-figtreeBold text-xl mb-1">
+							Nearby Drivers
+						</Text>
+						<Text className="font-figtreeLight text-gray-600">
+							Range: {radiusKm} km
+						</Text>
+						<View className="flex-row mt-2 gap-2">
+							{[0.5, 1.0, 1.5, 2.0].map((r) => (
+								<TouchableOpacity
+									key={`radius-${r}`}
+									className={`px-3 py-2 rounded-md ${radiusKm === r ? "bg-black" : "bg-white"}`}
+									onPress={() => setRadiusKm(r)}
+								>
+									<Text
+										className={`${radiusKm === r ? "text-white" : "text-black"}`}
+									>
+										{r} km
+									</Text>
+								</TouchableOpacity>
+							))}
+						</View>
+					</View>
 					<FlatList
-						data={drivers}
+						data={nearbyDrivers}
 						renderItem={({ item }) => (
 							<TouchableOpacity className="bg-white mt-2 p-4 rounded-lg">
-								<View className="flex-col">
-									<View className="flex-row justify-between">
-										{/* Driver Name */}
-
-										<Text>
-											{item.first_name} {item.last_name}
-										</Text>
-
-										<Text>Seats Left: {item.left_seats}</Text>
-									</View>
+								<View className="flex-row justify-between">
+									<Text className="font-figtreeMedium">{item.title}</Text>
+									<Text className="text-gray-600">
+										{(item.distance ?? 0).toFixed(2)} km
+									</Text>
 								</View>
 							</TouchableOpacity>
 						)}
 						keyExtractor={(item) => item.id.toString()}
+						ListEmptyComponent={
+							<Text className="text-gray-600">
+								No nearby drivers for this range.
+							</Text>
+						}
 					/>
 				</BottomSheetView>
 			</BottomSheet>
