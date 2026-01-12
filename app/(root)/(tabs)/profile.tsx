@@ -43,7 +43,7 @@ const Profile = () => {
 
 			const res = await tableDB.listRows({
 				databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
-				tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID!,
+				tableId: process.env.EXPO_PUBLIC_APPWRITE_USER_TABLE_ID!,
 				queries: [Query.equal("UserID", authUser.$id)], // ✅ Correct
 			});
 
@@ -78,7 +78,7 @@ const Profile = () => {
 		try {
 			const updated = await tableDB.updateRow({
 				databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
-				tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID!,
+				tableId: process.env.EXPO_PUBLIC_APPWRITE_USER_TABLE_ID!,
 				rowId: profile.$id, // Use the actual Appwrite row id
 				data: {
 					Name: profile.Name || "",
@@ -88,7 +88,7 @@ const Profile = () => {
 					DateOfBirth: profile.DateOfBirth
 						? ddmmyyyyToISO(profile.DateOfBirth)
 						: null,
-					userName: profile.userName || "",
+					UserName: profile.UserName || "",
 				},
 			});
 
@@ -178,9 +178,9 @@ const Profile = () => {
 						<TextInput
 							placeholder="Enter User Name"
 							className="flex w-full  border border-gray-300 rounded-md mb-4"
-							value={profile?.userName || ""}
+							value={profile?.UserName || ""}
 							onChangeText={(text) =>
-								setProfile({ ...profile, userName: text })
+								setProfile({ ...profile, UserName: text })
 							}
 						/>
 
@@ -253,7 +253,7 @@ const Profile = () => {
 					{profile?.Name || "John Scott"}
 				</Text>
 				<Text className="text-sm font-figtreeSemiBold text-gray-500 mb-5">
-					{profile?.userName}
+					{profile?.UserName}
 				</Text>
 
 				<CustomButton

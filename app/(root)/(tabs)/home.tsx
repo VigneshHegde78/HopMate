@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export default function Home() {
 	const bottomSheetRef = useRef<BottomSheet>(null);
 	const mapRef = useRef<MapController>(null);
-	const snapPoints = useMemo(() => ["40%", "60%", "90%"], []);
+	const snapPoints = useMemo(() => ["40%", "85%"], []);
 	const insets = useSafeAreaInsets();
 	const [destination, setDestination] = useState<Destination | null>(null);
 	const [radiusKm, setRadiusKm] = useState<number>(0.5); // 0.5km to 2km

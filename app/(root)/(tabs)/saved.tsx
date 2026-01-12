@@ -1,14 +1,21 @@
+import DestSearchBar, { Destination } from "@/components/DestinationSearchBar";
 import { images } from "@/constants";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useState } from "react";
-import { FlatList, Image, Text, TouchableOpacity, View } from "react-native";
+import { useMemo, useState } from "react";
+import {
+	FlatList,
+	Image,
+	Text,
+	TextInput,
+	TouchableOpacity,
+	View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import "../../global.css";
 
 export default function Saved() {
 	const [saved, setSaved] = useState(true);
-
-	const savedRoutes = [
+	const [savedRoutes, setSavedRoutes] = useState([
 		{
 			nickname: "Home",
 			saved_id: "1",
@@ -45,7 +52,43 @@ export default function Saved() {
 			ride_time: 159,
 			user_id: "1",
 		},
-	];
+	]);
+
+	const [selected, setSelected] = useState<Destination | null>(null);
+	const [nickname, setNickname] = useState("");
+
+	const canSave = useMemo(
+		() =>
+			!!selected &&
+			(nickname.trim().length > 0 || !!selected?.name || !!selected?.address),
+		[nickname, selected]
+	);
+
+	const handleSave = () => {
+		if (!selected) return;
+		const id = Date.now().toString();
+		const newItem = {
+			nickname: nickname.trim() || selected.name || "Saved Location",
+			saved_id: id,
+			destination_address: selected.address || selected.name || "",
+			destination_latitude: String(selected.latitude),
+			destination_longitude: String(selected.longitude),
+			ride_time: 0,
+			user_id: "1",
+		};
+		setSavedRoutes((prev) => [newItem, ...prev]);
+		setSaved(true);
+		setSelected(null);
+		setNickname("");
+	};
+
+	const handleDelete = (id: string) => {
+		setSavedRoutes((prev) => {
+			const next = prev.filter((r) => r.saved_id !== id);
+			if (next.length === 0) setSaved(false);
+			return next;
+		});
+	};
 
 	return (
 		<SafeAreaView className="flex-1 bg-gray-100 p-3">
@@ -56,9 +99,70 @@ export default function Saved() {
 				You can see all your saved destinations here.
 			</Text>
 
+			{/* Geoapify Search + Save */}
+			<View className="mt-4">
+				<DestSearchBar
+					onPlaceSelected={(d) => {
+						setSelected(d);
+					}}
+				/>
+				{selected ? (
+					<View className="mt-3 bg-white rounded-2xl p-4">
+						<Text className="font-lexendBold text-[#454545]">
+							Selected Destination
+						</Text>
+						<Text className="font-lexendRegular text-gray-600">
+							{selected.name || "Location"}
+						</Text>
+						{selected.address ? (
+							<Text className="font-lexendExtraLight text-gray-500 mt-1">
+								{selected.address}
+							</Text>
+						) : null}
+						<View className="mt-3">
+							<Text className="font-lexendRegular text-[#454545] mb-1">
+								Nickname (optional)
+							</Text>
+							<View className="flex-row items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
+								<MaterialIcons name="label" size={18} color="#666" />
+								<TextInput
+									value={nickname}
+									onChangeText={setNickname}
+									placeholder="e.g., Home, Office"
+									placeholderTextColor="#999"
+									style={{ flex: 1, fontSize: 16 }}
+								/>
+							</View>
+						</View>
+						<TouchableOpacity
+							className={`mt-3 px-4 py-3 rounded-xl ${canSave ? "bg-[#fbc02b]" : "bg-gray-300"}`}
+							onPress={handleSave}
+							disabled={!canSave}
+						>
+							<View className="flex-row items-center justify-center gap-2">
+								<MaterialIcons name="bookmark-add" size={18} color="#fff" />
+								<Text className="text-white font-lexendBold">Save Ride</Text>
+							</View>
+						</TouchableOpacity>
+						<TouchableOpacity
+							className="mt-2 px-4 py-3 rounded-xl bg-red-500"
+							onPress={() => {
+								setSelected(null);
+								setNickname("");
+							}}
+						>
+							<View className="flex-row items-center justify-center gap-2">
+								<MaterialIcons name="cancel" size={18} color="#fff" />
+								<Text className="text-white font-lexendBold">Cancel</Text>
+							</View>
+						</TouchableOpacity>
+					</View>
+				) : null}
+			</View>
+
 			{saved ? (
 				<FlatList
-					data={savedRoutes?.slice(0, 5)}
+					data={savedRoutes?.slice(0, 20)}
 					keyExtractor={(item) => item.saved_id}
 					renderItem={({ item }) => (
 						<View className="flex-row bg-white rounded-2xl p-4 mb-3 shadow-sm items-center">
@@ -73,18 +177,14 @@ export default function Saved() {
 								<Text className="font-lexendBold text-lg text-[#454545]">
 									{item.destination_address}
 								</Text>
-								<Text className="font-lexendRegular text-gray-500 mt-1">
-									{item.ride_time} mins
-								</Text>
+
 								<Text className="font-lexendExtraLight text-gray-500 mt-1">
 									{item.nickname}
 								</Text>
 							</View>
 							<TouchableOpacity
 								className="absolute bottom-5 right-5"
-								onPress={() => {
-									console.log("Delete pressed");
-								}}
+								onPress={() => handleDelete(item.saved_id)}
 							>
 								<MaterialIcons name="delete" size={16} color={"red"} />
 							</TouchableOpacity>

@@ -91,7 +91,7 @@ export default function SignUp() {
             // 3️⃣ Create table row (profile)
             const res = await tableDB.createRow({
                 databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
-                tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID!,
+                tableId: process.env.EXPO_PUBLIC_APPWRITE_USER_TABLE_ID!,
                 rowId: user.$id, // one row per user
                 data: {
                     UserID: user.$id,

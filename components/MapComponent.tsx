@@ -160,14 +160,14 @@ export default forwardRef<
 				setInitialRegion(fallbackRegion);
 			}
 		})();
-		}, []);
-	
-		const generateMockDrivers = useCallback(
-			(
-				origin?: { latitude: number; longitude: number },
-				count: number = 6,
-				spreadKm: number = Math.max(1, radiusKm)
-			): DriverMarker[] => {
+	}, []);
+
+	const generateMockDrivers = useCallback(
+		(
+			origin?: { latitude: number; longitude: number },
+			count: number = 6,
+			spreadKm: number = Math.max(1, radiusKm)
+		): DriverMarker[] => {
 			const base = origin ?? {
 				latitude: initialRegion?.latitude ?? fallbackRegion.latitude,
 				longitude: initialRegion?.longitude ?? fallbackRegion.longitude,
@@ -199,7 +199,7 @@ export default forwardRef<
 		const databaseId = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID as string;
 		const collectionId =
 			(process.env.EXPO_PUBLIC_APPWRITE_DRIVER_COLLECTION_ID as string) ||
-			"driver_locations";
+			"location";
 		let unsubscribe: (() => void) | null = null;
 
 		const fetchDrivers = async () => {
@@ -254,11 +254,11 @@ export default forwardRef<
 				setDriverMarkers((prev) => {
 					const title =
 						`${doc.first_name ?? "Driver"} ${doc.last_name ?? ""}`.trim();
-					const existingIdx = prev.findIndex((m) => m.id === doc.driver_id);
+					const existingIdx = prev.findIndex((m) => m.id === doc.UserId);
 					const updated = {
-						id: doc.driver_id,
-						latitude: doc.latitude,
-						longitude: doc.longitude,
+						id: doc.UserId,
+						latitude: doc.CurruntLatitude,
+						longitude: doc.CurruntLongitude,
 						title,
 					} as DriverMarker;
 					if (existingIdx >= 0) {

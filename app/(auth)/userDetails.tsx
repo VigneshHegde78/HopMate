@@ -25,7 +25,7 @@ const UserDetails = () => {
     try {
       const res = await tableDB.listRows({
         databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
-        tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID!,
+        tableId: process.env.EXPO_PUBLIC_APPWRITE_USER_TABLE_ID!,
 
       });
 
@@ -49,7 +49,7 @@ const UserDetails = () => {
 
       const res = await tableDB.createRow({
         databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
-        tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID!,
+        tableId: process.env.EXPO_PUBLIC_APPWRITE_USER_TABLE_ID!,
         rowId: user.$id, // ✅ one profile per auth user
         data: {
           UserID: user.$id,                  // ✔ matches column
@@ -83,7 +83,7 @@ const UserDetails = () => {
     try {
       const res = await tableDB.updateRow({
         databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
-        tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID!,
+        tableId: process.env.EXPO_PUBLIC_APPWRITE_USER_TABLE_ID!,
         rowId: "2222",
         data: {
           name,

@@ -29,10 +29,12 @@ function DestinationSearchBar({
 	onPlaceSelected,
 	placeholder = "Search destination",
 	minLength = 2,
+	onReset,
 }: {
 	onPlaceSelected: (d: Destination) => void;
 	placeholder?: string;
 	minLength?: number;
+	onReset?: () => void;
 }) {
 	const apiKey = process.env.EXPO_PUBLIC_GEOAPIFY_API_KEY || undefined;
 	const [query, setQuery] = useState("");
@@ -40,6 +42,7 @@ function DestinationSearchBar({
 	const [loading, setLoading] = useState(false);
 	const [detailsLoading, setDetailsLoading] = useState(false);
 	const [statusMsg, setStatusMsg] = useState<string | null>(null);
+	const [justSelected, setJustSelected] = useState(false);
 
 	useEffect(() => {
 		if (!apiKey) {
@@ -57,6 +60,12 @@ function DestinationSearchBar({
 		if (query.trim().length < minLength) {
 			setPredictions([]);
 			setStatusMsg(null);
+			return;
+		}
+
+		// Skip fetching if we just selected a prediction
+		if (justSelected) {
+			setJustSelected(false);
 			return;
 		}
 
@@ -106,7 +115,7 @@ function DestinationSearchBar({
 			controller.abort();
 			clearTimeout(timeout);
 		};
-	}, [apiKey, minLength, query]);
+	}, [apiKey, minLength, query, justSelected]);
 
 	const onSelectPrediction = async (p: Prediction) => {
 		if (!apiKey) return;
@@ -125,14 +134,16 @@ function DestinationSearchBar({
 				const result = data.features[0];
 				const props = result.properties;
 
-				onPlaceSelected({
+				const destination = {
 					latitude: props.lat,
 					longitude: props.lon,
 					name: props.name || props.address_line1,
 					address: props.formatted,
-				});
-				setQuery(p.description);
+				};
+				onPlaceSelected(destination);
+				setQuery("");
 				setPredictions([]);
+				setJustSelected(true);
 			} else {
 				console.warn("Geoapify Geocode error:", data);
 				setStatusMsg("Details not found");
@@ -161,35 +172,66 @@ function DestinationSearchBar({
 	);
 
 	return (
-		<View style={{ width: "100%" }}>
-			<View
-				className="flex-row items-center gap-1 rounded-3xl bg-white px-5 py-1.5"
-			>
+		<View style={{ width: "100%", position: "relative", zIndex: 1000 }}>
+			<View className="flex-row items-center gap-1 rounded-3xl bg-white px-5 py-2">
 				<MaterialIcons name="search" size={24} color="#666" />
 				<TextInput
 					value={query}
-					onChangeText={setQuery}
+					onChangeText={(text) => {
+						setQuery(text);
+						setJustSelected(false);
+					}}
 					placeholder={apiKey ? placeholder : "Add Geoapify API key"}
 					placeholderTextColor="#999"
-					style={{ fontSize: 16 }}
+					style={{ fontSize: 16, flex: 1, paddingVertical: 4 }}
 					autoCorrect={false}
 					autoCapitalize="none"
 					returnKeyType="search"
 				/>
+				{query.length > 0 && (
+					<MaterialIcons
+						name="close"
+						size={20}
+						color="#666"
+						onPress={() => setQuery("")}
+					/>
+				)}
 			</View>
 			{loading && (
-				<View style={{ paddingVertical: 8 }}>
+				<View
+					style={{
+						position: "absolute",
+						top: "100%",
+						left: 0,
+						right: 0,
+						paddingVertical: 8,
+						backgroundColor: "#fff",
+						borderRadius: 12,
+						marginTop: 8,
+						zIndex: 1001,
+					}}
+				>
 					<ActivityIndicator size="small" />
 				</View>
 			)}
 			{!loading && predictions.length > 0 && (
 				<View
 					style={{
+						position: "absolute",
+						top: "100%",
+						left: 0,
+						right: 0,
 						backgroundColor: "#fff",
 						borderRadius: 12,
 						marginTop: 8,
 						overflow: "hidden",
 						elevation: 2,
+						shadowColor: "#000",
+						shadowOffset: { width: 0, height: 2 },
+						shadowOpacity: 0.1,
+						shadowRadius: 4,
+						maxHeight: 300,
+						zIndex: 1001,
 					}}
 				>
 					<FlatList
@@ -207,12 +249,38 @@ function DestinationSearchBar({
 				predictions.length === 0 &&
 				query.trim().length >= minLength &&
 				statusMsg && (
-					<View style={{ paddingVertical: 8 }}>
-						<Text style={{ color: "#666" }}>{statusMsg}</Text>
+					<View
+						style={{
+							position: "absolute",
+							top: "100%",
+							left: 0,
+							right: 0,
+							paddingVertical: 8,
+							backgroundColor: "#fff",
+							borderRadius: 12,
+							marginTop: 8,
+							zIndex: 1001,
+						}}
+					>
+						<Text style={{ color: "#666", textAlign: "center" }}>
+							{statusMsg}
+						</Text>
 					</View>
 				)}
 			{detailsLoading && (
-				<View style={{ paddingVertical: 8 }}>
+				<View
+					style={{
+						position: "absolute",
+						top: "100%",
+						left: 0,
+						right: 0,
+						paddingVertical: 8,
+						backgroundColor: "#fff",
+						borderRadius: 12,
+						marginTop: 8,
+						zIndex: 1001,
+					}}
+				>
 					<ActivityIndicator size="small" />
 				</View>
 			)}
