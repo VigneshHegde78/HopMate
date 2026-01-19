@@ -200,6 +200,7 @@ export default forwardRef<
 		const collectionId =
 			(process.env.EXPO_PUBLIC_APPWRITE_DRIVER_COLLECTION_ID as string) ||
 			"location";
+
 		let unsubscribe: (() => void) | null = null;
 
 		const fetchDrivers = async () => {
@@ -211,13 +212,16 @@ export default forwardRef<
 					return;
 				}
 				const res = await databases.listDocuments(databaseId, collectionId);
+
 				const rows = (res?.documents ?? []) as any[];
+				console.log("Fetched drivers:", rows);
 				const markers: DriverMarker[] = rows.map((d: any) => ({
-					id: d.driver_id,
-					latitude: d.latitude,
-					longitude: d.longitude,
+					id: d.UserId,
+					latitude: parseFloat(d.CurruntLatitude),
+					longitude: parseFloat(d.CurruntLongitude),
 					title: `${d.first_name ?? "Driver"} ${d.last_name ?? ""}`.trim(),
 				}));
+				console.log("Mapped driver markers:", markers);
 				if (!markers.length) {
 					const origin = userCoord ??
 						(initialRegion && {
@@ -257,8 +261,8 @@ export default forwardRef<
 					const existingIdx = prev.findIndex((m) => m.id === doc.UserId);
 					const updated = {
 						id: doc.UserId,
-						latitude: doc.CurruntLatitude,
-						longitude: doc.CurruntLongitude,
+						latitude: parseFloat(doc.CurruntLatitude),
+						longitude: parseFloat(doc.CurruntLongitude),
 						title,
 					} as DriverMarker;
 					if (existingIdx >= 0) {

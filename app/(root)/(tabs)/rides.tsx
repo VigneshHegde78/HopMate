@@ -1,3 +1,4 @@
+import RealtimeDocumentList from "@/components/RealtimeList";
 import RideCard from "@/components/RideCard";
 import { images } from "@/constants";
 import { FlatList, Image, Text, View } from "react-native";
@@ -93,6 +94,7 @@ export default function Rides() {
 			<Text className="text-3xl font-lexendBold text-[#454545]">
 				Ride History
 			</Text>
+			<RealtimeDocumentList />
 			<Text className="text-md font-lexendRegular text-gray-500">
 				You can see your recent rides here.
 			</Text>
