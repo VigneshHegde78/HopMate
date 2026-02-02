@@ -43,7 +43,7 @@ const Profile = () => {
 
 			const res = await tableDB.listRows({
 				databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
-				tableId: process.env.EXPO_PUBLIC_APPWRITE_USER_TABLE_ID!,
+				tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID!,
 				queries: [Query.equal("UserID", authUser.$id)], // ✅ Correct
 			});
 

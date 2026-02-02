@@ -2,13 +2,12 @@ import AppwriteClientInstance, { databases } from "@/lib/appwrite";
 import * as Location from "expo-location";
 import React, {
 	forwardRef,
-	useCallback,
 	useEffect,
 	useImperativeHandle,
 	useRef,
 	useState,
 } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import MapView, { Marker, Polyline, type Region } from "react-native-maps";
 
 export type MapController = {
@@ -96,7 +95,7 @@ export default forwardRef<
 		onNearbyDriversChange?: (drivers: DriverMarker[]) => void;
 	}
 >(function MapComponent(
-	{ destination, radiusKm = 3, onNearbyDriversChange },
+	{ destination, radiusKm = 1.5, onNearbyDriversChange },
 	ref
 ) {
 	const mapRef = useRef<MapView>(null);
@@ -162,38 +161,6 @@ export default forwardRef<
 		})();
 	}, []);
 
-	const generateMockDrivers = useCallback(
-		(
-			origin?: { latitude: number; longitude: number },
-			count: number = 6,
-			spreadKm: number = Math.max(1, radiusKm)
-		): DriverMarker[] => {
-			const base = origin ?? {
-				latitude: initialRegion?.latitude ?? fallbackRegion.latitude,
-				longitude: initialRegion?.longitude ?? fallbackRegion.longitude,
-			};
-			const degPerKmLat = 1 / 111.32; // ~0.008983 degrees per km
-			const cosLat = Math.cos((base.latitude * Math.PI) / 180);
-			const degPerKmLon =
-				1 / (111.32 * (Math.abs(cosLat) < 0.01 ? 0.01 : Math.abs(cosLat)));
-
-			const mocks: DriverMarker[] = Array.from({ length: count }).map(
-				(_, i) => {
-					const randLat = (Math.random() - 0.5) * 2 * spreadKm * degPerKmLat;
-					const randLon = (Math.random() - 0.5) * 2 * spreadKm * degPerKmLon;
-					return {
-						id: 100000 + i,
-						latitude: base.latitude + randLat,
-						longitude: base.longitude + randLon,
-						title: `Mock Driver ${i + 1}`,
-					};
-				}
-			);
-			return mocks;
-		},
-		[initialRegion, radiusKm]
-	);
-
 	// Fetch initial driver locations and subscribe to realtime updates (Appwrite)
 	useEffect(() => {
 		const databaseId = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID as string;
@@ -221,31 +188,10 @@ export default forwardRef<
 					longitude: parseFloat(d.CurruntLongitude),
 					title: `${d.first_name ?? "Driver"} ${d.last_name ?? ""}`.trim(),
 				}));
-				console.log("Mapped driver markers:", markers);
-				if (!markers.length) {
-					const origin = userCoord ??
-						(initialRegion && {
-							latitude: initialRegion.latitude,
-							longitude: initialRegion.longitude,
-						}) ?? {
-							latitude: fallbackRegion.latitude,
-							longitude: fallbackRegion.longitude,
-						};
-					setDriverMarkers(generateMockDrivers(origin));
-				} else {
-					setDriverMarkers(markers);
-				}
+				setDriverMarkers(markers);
 			} catch (e) {
-				console.warn("Failed to fetch drivers", e);
-				const origin = userCoord ??
-					(initialRegion && {
-						latitude: initialRegion.latitude,
-						longitude: initialRegion.longitude,
-					}) ?? {
-						latitude: fallbackRegion.latitude,
-						longitude: fallbackRegion.longitude,
-					};
-				setDriverMarkers(generateMockDrivers(origin));
+				console.error("Error fetching drivers:", e);
+				setDriverMarkers([]);
 			}
 		};
 
@@ -282,7 +228,7 @@ export default forwardRef<
 		return () => {
 			if (unsubscribe) unsubscribe();
 		};
-	}, [initialRegion, userCoord, generateMockDrivers]);
+	}, [initialRegion, userCoord]);
 
 	// Fetch and display route polyline from current location to destination
 	useEffect(() => {
@@ -362,6 +308,7 @@ export default forwardRef<
 						longitude: initialRegion.longitude,
 					}}
 				/>
+
 
 				{/* Nearby driver markers within radius */}
 				{userCoord
