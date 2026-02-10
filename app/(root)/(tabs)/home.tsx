@@ -1,6 +1,8 @@
 import DestSearchBar, { Destination } from "@/components/DestinationSearchBar";
 import MapComponent from "@/components/MapComponent";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
+import { useNavigation } from "@react-navigation/native";
+import { router } from "expo-router";
 import React, { useMemo, useRef, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,6 +19,7 @@ export default function Home() {
 
 	const [destination, setDestination] = useState<Destination | null>(null);
 	const [nearbyDrivers, setNearbyDrivers] = useState<NearbyDriver[]>([]);
+	const navigation = useNavigation<any>();
 
 	return (
 		<View style={{ flex: 1 }}>
@@ -54,11 +57,14 @@ export default function Home() {
 					{nearbyDrivers.map((driver) => (
 						<TouchableOpacity
 							key={driver.id}
+							style={styles.card}
 							disabled={driver.seatStatus === "FULL"}
-							style={[
-								styles.card,
-								driver.seatStatus === "FULL" && { opacity: 0.5 },
-							]}
+							onPress={() =>
+								router.push({
+									pathname: "/request-ride",
+									params: { driverId: driver.id },
+								})
+							}
 						>
 							<Text style={styles.driverTitle}>
 								Driver #{nearbyDrivers.indexOf(driver) + 1}

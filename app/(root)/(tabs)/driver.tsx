@@ -8,11 +8,18 @@ import { StyleSheet, Switch, Text, View } from "react-native";
 const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
 const COLLECTION_ID = "user_location";
 
+type RideRequest = {
+	id: string;
+	destinationName: string;
+	seatsRequested: number;
+};
+
 /* ================= COMPONENT ================= */
 
 export default function DriverHome() {
 	const [driverId, setDriverId] = useState<string | null>(null);
 	const [isActive, setIsActive] = useState(false);
+	const [requests, setRequests] = useState<RideRequest[]>([]);
 	const [seatStatus, setSeatStatus] = useState<"AVAILABLE" | "FULL">(
 		"AVAILABLE"
 	);
@@ -139,7 +146,10 @@ export default function DriverHome() {
 	/* ---------------- UI ---------------- */
 	return (
 		<View style={styles.container}>
-			<Text style={styles.title}>Driver Status</Text>
+			<View className="flex-row">
+				<Text className="text-2xl font-lexendBold">HopMate</Text>
+				<Text className="ml-2 text-gray-600 capitalize">Driver</Text>
+			</View>
 
 			<View style={styles.row}>
 				<Text style={styles.status}>{isActive ? "ONLINE" : "OFFLINE"}</Text>
@@ -154,6 +164,23 @@ export default function DriverHome() {
 					value={seatStatus === "AVAILABLE"}
 					onValueChange={onSeatToggle}
 				/>
+			</View>
+
+			<View style={{ marginTop: 24 }}>
+				<Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 12 }}>
+					Ride Requests
+				</Text>
+
+				{requests.length === 0 && (
+					<Text style={{ color: "#666" }}>No requests yet</Text>
+				)}
+
+				{requests.map((r) => (
+					<View key={r.id} style={styles.card}>
+						<Text>📍 Destination: {r.destinationName}</Text>
+						<Text>🪑 Seats: {r.seatsRequested}</Text>
+					</View>
+				))}
 			</View>
 
 			{coords && (
@@ -189,5 +216,11 @@ const styles = StyleSheet.create({
 	coords: {
 		marginTop: 20,
 		color: "#666",
+	},
+	card: {
+		padding: 16,
+		borderRadius: 8,
+		backgroundColor: "#f0f0f0",
+		marginBottom: 12,
 	},
 });
