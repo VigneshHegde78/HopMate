@@ -4,6 +4,15 @@ import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import MapView, { Marker, Region } from "react-native-maps";
 
+/* ================= TYPES ================= */
+
+type DriverDoc = {
+	id: string;
+	latitude: number;
+	longitude: number;
+	seatStatus: "AVAILABLE" | "FULL";
+};
+
 const fallbackRegion: Region = {
 	latitude: 19.3036,
 	longitude: 72.8602,
@@ -11,13 +20,20 @@ const fallbackRegion: Region = {
 	longitudeDelta: 0.05,
 };
 
-type DriverMarker = {
-	id: string;
-	latitude: number;
-	longitude: number;
-};
+/* ================= COMPONENT ================= */
 
-export default function MapComponent({ radiusKm = 2 }: { radiusKm?: number }) {
+export default function MapComponent({
+	radiusKm = 2,
+	onDriversChange,
+}: {
+	radiusKm?: number;
+	onDriversChange?: (
+		drivers: {
+			id: string;
+			seatStatus: "AVAILABLE" | "FULL";
+		}[]
+	) => void;
+}) {
 	const mapRef = useRef<MapView>(null);
 
 	const [region, setRegion] = useState<Region>(fallbackRegion);
@@ -25,9 +41,10 @@ export default function MapComponent({ radiusKm = 2 }: { radiusKm?: number }) {
 		latitude: number;
 		longitude: number;
 	} | null>(null);
-	const [drivers, setDrivers] = useState<DriverMarker[]>([]);
 
-	// ---------------- USER LOCATION ----------------
+	const [drivers, setDrivers] = useState<DriverDoc[]>([]);
+
+	/* ---------------- USER LOCATION ---------------- */
 	useEffect(() => {
 		let sub: Location.LocationSubscription;
 
@@ -55,7 +72,30 @@ export default function MapComponent({ radiusKm = 2 }: { radiusKm?: number }) {
 		return () => sub?.remove();
 	}, []);
 
-	// ---------------- REALTIME DRIVER SUBSCRIPTION ----------------
+	/* ---------------- INITIAL FETCH ---------------- */
+	useEffect(() => {
+		const fetchDrivers = async () => {
+			const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
+			const COLLECTION_ID = "user_location";
+
+			const res = await databases.listDocuments(DATABASE_ID, COLLECTION_ID);
+
+			const activeDrivers = res.documents
+				.filter((d: any) => d.isActive === true)
+				.map((d: any) => ({
+					id: d.DriverId,
+					latitude: Number(d.DriverLatitude),
+					longitude: Number(d.DriverLongitude),
+					seatStatus: d.seatStatus ?? "AVAILABLE",
+				}));
+
+			setDrivers(activeDrivers);
+		};
+
+		fetchDrivers();
+	}, []);
+
+	/* ---------------- REALTIME SUBSCRIBE ---------------- */
 	useEffect(() => {
 		const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
 		const COLLECTION_ID = "user_location";
@@ -69,16 +109,15 @@ export default function MapComponent({ radiusKm = 2 }: { radiusKm?: number }) {
 				if (!doc) return;
 
 				setDrivers((prev) => {
-					// 🔴 Driver OFF → remove
 					if (!doc.isActive) {
 						return prev.filter((d) => d.id !== doc.DriverId);
 					}
 
-					// 🟢 Driver ON → add/update
-					const updated = {
+					const updated: DriverDoc = {
 						id: doc.DriverId,
-						latitude: parseFloat(doc.DriverLatitude),
-						longitude: parseFloat(doc.DriverLongitude),
+						latitude: Number(doc.DriverLatitude),
+						longitude: Number(doc.DriverLongitude),
+						seatStatus: doc.seatStatus ?? "AVAILABLE",
 					};
 
 					const exists = prev.find((d) => d.id === doc.DriverId);
@@ -94,51 +133,33 @@ export default function MapComponent({ radiusKm = 2 }: { radiusKm?: number }) {
 		return () => unsubscribe();
 	}, []);
 
+	/* ---------------- EMIT TO RIDER UI ---------------- */
 	useEffect(() => {
-		const fetchActiveDrivers = async () => {
-			const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
-			const COLLECTION_ID = "user_location";
+		const simplified = drivers.map((d) => ({
+			id: d.id,
+			seatStatus: d.seatStatus,
+		}));
 
-			try {
-				const res = await databases.listDocuments(DATABASE_ID, COLLECTION_ID);
+		onDriversChange?.(simplified);
+	}, [drivers]);
 
-				const activeDrivers = res.documents
-					.filter((d: any) => d.isActive === true)
-					.map((d: any) => ({
-						id: d.DriverId,
-						latitude: parseFloat(d.DriverLatitude),
-						longitude: parseFloat(d.DriverLongitude),
-					}));
-
-				setDrivers(activeDrivers);
-				console.log("Fetched active drivers:", activeDrivers);
-			} catch (err) {
-				console.log("Initial driver fetch failed: ", err);
-			}
-		};
-
-		fetchActiveDrivers();
-	}, []);
-
-	// ---------------- DISTANCE FILTER ----------------
-	const visibleDrivers = drivers;
-
-	// ---------------- UI ----------------
+	/* ---------------- UI ---------------- */
 	return (
 		<View style={styles.container}>
 			<MapView
+				ref={mapRef}
 				style={styles.map}
-				initialRegion={fallbackRegion}
+				region={region}
 				showsUserLocation
 			>
-				{visibleDrivers.map((d) => (
+				{drivers.map((d) => (
 					<Marker
 						key={d.id}
 						coordinate={{
 							latitude: d.latitude,
 							longitude: d.longitude,
 						}}
-						title="Active Driver"
+						title="Driver nearby"
 						icon={require("../assets/icons/marker.png")}
 					/>
 				))}
@@ -146,6 +167,8 @@ export default function MapComponent({ radiusKm = 2 }: { radiusKm?: number }) {
 		</View>
 	);
 }
+
+/* ================= STYLES ================= */
 
 const styles = StyleSheet.create({
 	container: { flex: 1 },

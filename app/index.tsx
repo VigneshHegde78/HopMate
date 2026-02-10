@@ -36,9 +36,9 @@ export default function Home() {
 	// ✅ Redirect AFTER check completes
 	return isLoggedIn ? (
 		mode === "rider" ? (
-			<Redirect href="/(root)/(tabs)/home" />
-		) : (
 			<Redirect href="/(root)/(tabs)/driver" />
+		) : (
+			<Redirect href="/(root)/(tabs)/home" />
 		)
 	) : (
 		<Redirect href="/(auth)/sign-in" />
