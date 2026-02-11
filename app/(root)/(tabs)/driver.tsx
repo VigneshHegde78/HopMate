@@ -146,17 +146,33 @@ export default function DriverHome() {
 	/* ---------------- UI ---------------- */
 	return (
 		<View style={styles.container}>
-			<View className="flex-row">
-				<Text className="text-2xl font-lexendBold">HopMate</Text>
-				<Text className="ml-2 text-gray-600 capitalize">Driver</Text>
+			<View className="flex-row items-center justify-between">
+				<View className="flex-row items-end">
+					<Text className="text-2xl font-lexendBold">HopMate</Text>
+					<Text className="ml-1.5 mb-0.5 text-gray-600 font-lexendSemiBold text-sm">
+						Driver
+					</Text>
+				</View>
+				<View className="flex-row items-center gap-1">
+					<View
+						className={`${isActive ? "bg-green-600" : "bg-red-500"} p-1 rounded-full`}
+					/>
+					<Text
+						className={`font-lexendSemiBold ${isActive ? "text-green-600" : "text-red-500"}`}
+					>
+						{isActive ? "Online" : "Offline"}
+					</Text>
+				</View>
 			</View>
 
-			<View style={styles.row}>
-				<Text style={styles.status}>{isActive ? "ONLINE" : "OFFLINE"}</Text>
+			{/* ---------------- STATUS TOGGLE ---------------- */}
+			<View className="bg-gray-200 flex-row items-center justify-between mt-6 mb-2 px-3 rounded-xl shadow-black/10 shadow-sm">
+				<Text className="font-lexendSemiBold">Driver Status</Text>
 				<Switch value={isActive} onValueChange={onToggle} />
 			</View>
 
-			<View style={styles.row}>
+			{/* ---------------- SEAT STATUS TOGGLE ( Only when driver is active  ) ---------------- */}
+			<View className="bg-white flex-row items-center justify-between mt-6 mb-4 px-3 rounded-xl ">
 				<Text>
 					{seatStatus === "AVAILABLE" ? "Seats Available" : "Fully Occupied"}
 				</Text>
@@ -197,8 +213,9 @@ export default function DriverHome() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		padding: 24,
-		justifyContent: "center",
+		padding: 20,
+		marginTop: 20,
+		justifyContent: "flex-start",
 	},
 	title: {
 		fontSize: 22,
@@ -209,6 +226,9 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
+		borderBlockColor: "#ddd",
+		borderWidth: 1,
+		paddingVertical: 12,
 	},
 	status: {
 		fontSize: 18,
