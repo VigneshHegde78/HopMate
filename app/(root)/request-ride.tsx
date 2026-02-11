@@ -4,6 +4,7 @@ import * as Location from "expo-location";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Button, Text, View } from "react-native";
+import { ID } from "react-native-appwrite";
 
 const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
 const COLLECTION_ID = "ride_requests";
@@ -33,22 +34,34 @@ export default function RequestRide() {
 	const submitRequest = async () => {
 		if (!driverId || !destination || !source) return;
 
-		const user = await account.get();
+		try {
+			const user = await account.get();
 
-		await databases.createDocument(DATABASE_ID, COLLECTION_ID, "unique()", {
-			riderId: user.$id,
-			driverId,
-			sourceLat: source.latitude,
-			sourceLng: source.longitude,
-			destinationName: destination.name,
-			destinationLat: destination.latitude,
-			destinationLng: destination.longitude,
-			seatsRequested: seats,
-			status: "PENDING",
-			createdAt: new Date().toISOString(),
-		});
+			const doc = await databases.createDocument(
+				DATABASE_ID,
+				COLLECTION_ID,
+				ID.unique(),
+				{
+					RiderId: user.$id,
+					DriverId: driverId,
+					RiderLat: source.latitude,
+					RiderLng: source.longitude,
+					DestinationName: destination.name,
+					DestinationLat: destination.latitude,
+					DestinationLng: destination.longitude,
+					SeatsRequested: seats,
+					Status: "PENDING",
+					
+				}
+			);
 
-		router.back(); // go back to home
+			router.replace({
+				pathname: "/request-status",
+				params: { requestId: doc.$id },
+			});
+		} catch (err) {
+			console.log("Request failed:", err);
+		}
 	};
 
 	return (
@@ -61,19 +74,17 @@ export default function RequestRide() {
 
 			<Text style={{ marginVertical: 16 }}>Seats needed: {seats}</Text>
 
-			<Button title="+" onPress={() => setSeats((s) => Math.min(s + 1, 4))} />
-			<Button title="-" onPress={() => setSeats((s) => Math.max(s - 1, 1))} />
+			<Button
+				title="Increase"
+				onPress={() => setSeats((s) => Math.min(s + 1, 4))}
+			/>
+			<Button
+				title="Decrease"
+				onPress={() => setSeats((s) => Math.max(s - 1, 1))}
+			/>
 
 			<View style={{ marginTop: 20 }}>
-				<Button
-					title="Send Request"
-					onPress={() =>
-						router.replace({
-							pathname: "/request-status",
-							params: { driverId },
-						})
-					}
-				/>
+				<Button title="Send Request" onPress={submitRequest} />
 			</View>
 		</View>
 	);

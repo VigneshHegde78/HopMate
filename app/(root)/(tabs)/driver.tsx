@@ -1,7 +1,7 @@
-import { account, databases } from "@/lib/appwrite";
+import appwriteClient, { account, databases } from "@/lib/appwrite";
 import * as Location from "expo-location";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Switch, Text, View } from "react-native";
+import { StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 
 /* ================= CONFIG ================= */
 
@@ -51,44 +51,42 @@ export default function DriverHome() {
 		if (!coords || !driverId) return;
 
 		await databases.updateDocument(DATABASE_ID, COLLECTION_ID, driverId, {
-			seatStatus: status,
+			SeatStatus: status,
 			lastUpdatedAt: new Date().toISOString(),
 		});
 	};
 
 	/* ---------------- LOCATION WATCHER ---------------- */
 	useEffect(() => {
-		if (!driverId || !isActive) return;
+		if (!driverId) return;
 
-		let sub: Location.LocationSubscription;
+		const channel = `databases.${DATABASE_ID}.collections.ride_requests.documents`;
 
-		(async () => {
-			const { status } = await Location.requestForegroundPermissionsAsync();
-			if (status !== "granted") return;
+		const unsubscribe = appwriteClient.subscribe(channel, (event: any) => {
+			const doc = event.payload;
+			if (!doc) return;
+			if (doc.DriverId !== driverId) return;
 
-			sub = await Location.watchPositionAsync(
-				{
-					accuracy: Location.Accuracy.Balanced,
-					timeInterval: 5000,
-					distanceInterval: 25,
-				},
-				async (loc) => {
-					const c = {
-						latitude: loc.coords.latitude,
-						longitude: loc.coords.longitude,
-					};
-
-					setCoords(c);
-
-					if (isActive) {
-						await upsertDriverLocation(c, true);
-					}
+			setRequests((prev) => {
+				if (doc.Status !== "PENDING") {
+					return prev.filter((r) => r.id !== doc.$id);
 				}
-			);
-		})();
 
-		return () => sub?.remove();
-	}, [driverId, isActive]);
+				if (prev.find((r) => r.id === doc.$id)) return prev;
+
+				return [
+					...prev,
+					{
+						id: doc.$id,
+						destinationName: doc.DestinationName,
+						seatsRequested: doc.SeatsRequested,
+					},
+				];
+			});
+		});
+
+		return () => unsubscribe();
+	}, [driverId]);
 
 	/* ---------------- UPSERT (CREATE OR UPDATE) ---------------- */
 	const upsertDriverLocation = async (
@@ -143,6 +141,18 @@ export default function DriverHome() {
 		await upsertDriverLocation(c, value);
 	};
 
+	const acceptRequest = async (requestId: string) => {
+		await databases.updateDocument(DATABASE_ID, "ride_requests", requestId, {
+			Status: "ACCEPTED",
+		});
+	};
+
+	const rejectRequest = async (requestId: string) => {
+		await databases.updateDocument(DATABASE_ID, "ride_requests", requestId, {
+			Status: "REJECTED",
+		});
+	};
+
 	/* ---------------- UI ---------------- */
 	return (
 		<View style={styles.container}>
@@ -180,6 +190,44 @@ export default function DriverHome() {
 					value={seatStatus === "AVAILABLE"}
 					onValueChange={onSeatToggle}
 				/>
+			</View>
+
+			<View style={{ marginTop: 30 }}>
+				<Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 12 }}>
+					Ride Requests
+				</Text>
+
+				{requests.length === 0 && (
+					<Text style={{ color: "#666" }}>No requests yet</Text>
+				)}
+
+				{requests.map((r) => (
+					<View key={r.id} style={styles.card}>
+						<Text style={{ marginBottom: 6 }}>
+							📍 Destination: {r.destinationName}
+						</Text>
+
+						<Text style={{ marginBottom: 8 }}>
+							🪑 Seats: {r.seatsRequested}
+						</Text>
+
+						<View style={{ flexDirection: "row" }}>
+							<TouchableOpacity
+								onPress={() => acceptRequest(r.id)}
+								style={[styles.btn, { backgroundColor: "green" }]}
+							>
+								<Text style={{ color: "#fff" }}>Accept</Text>
+							</TouchableOpacity>
+
+							<TouchableOpacity
+								onPress={() => rejectRequest(r.id)}
+								style={[styles.btn, { backgroundColor: "red" }]}
+							>
+								<Text style={{ color: "#fff" }}>Reject</Text>
+							</TouchableOpacity>
+						</View>
+					</View>
+				))}
 			</View>
 
 			<View style={{ marginTop: 24 }}>
@@ -242,5 +290,10 @@ const styles = StyleSheet.create({
 		borderRadius: 8,
 		backgroundColor: "#f0f0f0",
 		marginBottom: 12,
+	},
+	btn: {
+		padding: 10,
+		borderRadius: 6,
+		marginRight: 10,
 	},
 });
