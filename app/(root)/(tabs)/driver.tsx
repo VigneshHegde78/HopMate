@@ -230,23 +230,6 @@ export default function DriverHome() {
 				))}
 			</View>
 
-			<View style={{ marginTop: 24 }}>
-				<Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 12 }}>
-					Ride Requests
-				</Text>
-
-				{requests.length === 0 && (
-					<Text style={{ color: "#666" }}>No requests yet</Text>
-				)}
-
-				{requests.map((r) => (
-					<View key={r.id} style={styles.card}>
-						<Text>📍 Destination: {r.destinationName}</Text>
-						<Text>🪑 Seats: {r.seatsRequested}</Text>
-					</View>
-				))}
-			</View>
-
 			{coords && (
 				<Text style={styles.coords}>
 					{coords.latitude.toFixed(5)}, {coords.longitude.toFixed(5)}

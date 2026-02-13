@@ -1,7 +1,7 @@
-import AppwriteClientInstance from "@/lib/appwrite";
+import AppwriteClientInstance, { databases } from "@/lib/appwrite";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { Button, Text, View } from "react-native";
 
 const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
 
@@ -29,6 +29,15 @@ export default function RequestStatus() {
 		return () => unsubscribe();
 	}, [requestId]);
 
+	useEffect(() => {
+		if (status === "accepted") {
+			router.replace({
+				pathname: "/ride-live",
+				params: { requestId },
+			});
+		}
+	}, [status]);
+
 	return (
 		<View
 			style={{
@@ -46,6 +55,23 @@ export default function RequestStatus() {
 					<Text style={{ marginTop: 10, color: "#666" }}>
 						Waiting for driver...
 					</Text>
+
+					<View style={{ marginTop: 20 }}>
+						<Button
+							title="Cancel Request"
+							color="red"
+							onPress={async () => {
+								await databases.updateDocument(
+									DATABASE_ID,
+									"ride_requests",
+									requestId as string,
+									{ Status: "CANCELLED" }
+								);
+
+								router.replace("/");
+							}}
+						/>
+					</View>
 				</>
 			)}
 
@@ -55,6 +81,17 @@ export default function RequestStatus() {
 						Ride Accepted 🎉
 					</Text>
 					<Text style={{ marginTop: 10 }}>Your driver is on the way.</Text>
+
+					<Button
+						title="Go to Ride"
+						onPress={() =>
+							router.replace({
+								pathname: "/ride-live",
+								params: { requestId },
+							})
+						}
+						style={{ marginTop: 20 }}
+					/>
 				</>
 			)}
 

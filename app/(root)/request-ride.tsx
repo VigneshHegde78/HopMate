@@ -1,9 +1,10 @@
 import DestSearchBar, { Destination } from "@/components/DestinationSearchBar";
 import { account, databases } from "@/lib/appwrite";
+import { FontAwesome6, Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Button, Text, View } from "react-native";
+import { Button, Text, TouchableOpacity, View } from "react-native";
 import { ID } from "react-native-appwrite";
 
 const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
@@ -51,7 +52,6 @@ export default function RequestRide() {
 					DestinationLng: destination.longitude,
 					SeatsRequested: seats,
 					Status: "PENDING",
-					
 				}
 			);
 
@@ -72,16 +72,53 @@ export default function RequestRide() {
 
 			<DestSearchBar onPlaceSelected={setDestination} />
 
-			<Text style={{ marginVertical: 16 }}>Seats needed: {seats}</Text>
+			<View className="flex-row items-center my-4 rounded-lg px-3 pb-3 gap-3">
+				<FontAwesome6 name="location-arrow" size={24} />
+				<Text className="font-figtreeSemiBold text-lg">
+					{destination ? destination.name : "Search destination..."}
+				</Text>
+			</View>
 
-			<Button
-				title="Increase"
-				onPress={() => setSeats((s) => Math.min(s + 1, 4))}
-			/>
-			<Button
-				title="Decrease"
-				onPress={() => setSeats((s) => Math.max(s - 1, 1))}
-			/>
+			<View className="flex-row items-center rounded-lg px-3 gap-3">
+				<Ionicons name="people-sharp" size={24} />
+				<Text className="font-figtreeSemiBold text-lg">Seats: {seats}</Text>
+			</View>
+
+			<View className="flex-row h-10 items-center ">
+				<TouchableOpacity
+					onPress={() => setSeats((s) => Math.min(s + 1, 4))}
+					style={{
+						height: 40,
+						width: 40,
+						backgroundColor: "blue",
+						padding: 10,
+						borderRadius: 5,
+						justifyContent: "center",
+						alignItems: "center",
+					}}
+				>
+					<Text style={{ color: "#fff" }}>+</Text>
+				</TouchableOpacity>
+				<View>
+					<Text style={{ marginHorizontal: 16 }}>{seats}</Text>
+				</View>
+				<TouchableOpacity
+					onPress={() => setSeats((s) => Math.max(s - 1, 1))}
+					style={{
+						width: 40,
+						height: 40,
+						backgroundColor: "blue",
+						padding: 10,
+						borderRadius: 5,
+						justifyContent: "center",
+						alignItems: "center",
+					}}
+				>
+					<Text style={{ color: "#fff" }}>-</Text>
+				</TouchableOpacity>
+			</View>
+
+			<Text style={{ marginVertical: 16 }}>Seats needed: {seats}</Text>
 
 			<View style={{ marginTop: 20 }}>
 				<Button title="Send Request" onPress={submitRequest} />
