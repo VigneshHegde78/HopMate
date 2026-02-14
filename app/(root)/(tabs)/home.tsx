@@ -130,7 +130,7 @@ const styles = {
 	},
 	driverTitle: {
 		fontSize: 18,
-		fontWeight: "bold",
+		fontWeight: "bold" as const,
 		marginBottom: 8,
 	},
 };
