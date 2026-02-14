@@ -3,7 +3,6 @@ import { account } from "@/lib/appwrite";
 import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
-import "../app/global.css";
 
 export default function Home() {
 	const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
@@ -11,11 +10,9 @@ export default function Home() {
 
 	const checkUser = async () => {
 		try {
-			const user = await account.get();
-			console.log("User details:", user);
+			await account.get();
 			setIsLoggedIn(true);
-		} catch (error) {
-			console.log("No user logged in.");
+		} catch {
 			setIsLoggedIn(false);
 		}
 	};
@@ -24,8 +21,8 @@ export default function Home() {
 		checkUser();
 	}, []);
 
-	// 🔄 While checking session
-	if (isLoggedIn === null) {
+	// 🔄 Wait until both login + mode are ready
+	if (isLoggedIn === null || !mode) {
 		return (
 			<View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
 				<ActivityIndicator size="large" />
@@ -33,14 +30,13 @@ export default function Home() {
 		);
 	}
 
-	// ✅ Redirect AFTER check completes
-	return isLoggedIn ? (
-		mode === "rider" ? (
-			<Redirect href="/(root)/(tabs)/driver" />
-		) : (
-			<Redirect href="/(root)/(tabs)/home" />
-		)
-	) : (
-		<Redirect href="/(auth)/sign-in" />
+	if (!isLoggedIn) {
+		return <Redirect href="/(auth)/sign-in" />;
+	}
+
+	return (
+		<Redirect
+			href={mode === "rider" ? "/(root)/(tabs)/home" : "/(root)/(tabs)/driver"}
+		/>
 	);
 }

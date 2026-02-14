@@ -43,7 +43,11 @@ export default function SignIn() {
 				await setActive!({ session: createdSessionId });
 				// Set the selected mode in context
 				setMode(selectedRole);
-				router.replace("/(root)/(tabs)/home");
+				router.replace(
+					selectedRole === "rider"
+						? "/(root)/(tabs)/home"
+						: "/(root)/(tabs)/driver"
+				);
 			}
 		} catch (err) {
 			console.error(JSON.stringify(err, null, 2));
@@ -53,26 +57,29 @@ export default function SignIn() {
 	// Email/Password Sign In
 	const onSignInPress = async () => {
 		if (!isLoaded || !selectedRole) return;
-		
-		
+
 		if (!email || !password) {
 			setError("Please enter both email and password.");
 			return;
-		}	
-		
+		}
+
 		try {
 			const session = await account.createEmailPasswordSession({
 				email,
-				password
+				password,
 			});
-			
 
 			const currentUser = await account.get();
 			console.log("Sign-in successful:", session);
-			router.replace("/(root)/(tabs)/home");
+
+			router.replace(
+				selectedRole === "rider"
+					? "/(root)/(tabs)/home"
+					: "/(root)/(tabs)/driver"
+			);
+
 			// Set the selected mode in context
 			await setMode(selectedRole);
-
 		} catch (err: any) {
 			if (err.errors && err.errors.length > 0) setError(err.errors[0].message);
 			else {
@@ -165,7 +172,6 @@ export default function SignIn() {
 				</Text>
 			</View>
 
-		
 			<InputField
 				iconName="mail-outline"
 				placeholder="your@email.com"
@@ -192,7 +198,6 @@ export default function SignIn() {
 					</Text>
 				</TouchableOpacity>
 			</View>
-
 
 			<CustomButton
 				title="Sign In"
@@ -236,7 +241,12 @@ export default function SignIn() {
 				title="Skip for now"
 				onPress={() => {
 					if (selectedRole) setMode(selectedRole);
-					router.replace("/(root)/(tabs)/home");
+
+					router.replace(
+						selectedRole === "rider"
+							? "/(root)/(tabs)/home"
+							: "/(root)/(tabs)/driver"
+					);
 				}}
 				className="rounded-2xl py-3 my-3 items-center"
 				bgVariant="secondary"

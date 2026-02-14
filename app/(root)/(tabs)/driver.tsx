@@ -181,16 +181,19 @@ export default function DriverHome() {
 				<Switch value={isActive} onValueChange={onToggle} />
 			</View>
 
-			{/* ---------------- SEAT STATUS TOGGLE ( Only when driver is active  ) ---------------- */}
-			<View className="bg-white flex-row items-center justify-between mt-6 mb-4 px-3 rounded-xl ">
-				<Text>
-					{seatStatus === "AVAILABLE" ? "Seats Available" : "Fully Occupied"}
+			<TouchableOpacity
+				disabled={!isActive}
+				onPress={() => onSeatToggle(seatStatus === "AVAILABLE" ? false : true)}
+				className={`flex-row items-center justify-around border mt-2 p-1 rounded-full ${isActive && seatStatus === "AVAILABLE" ? "bg-green-500" : isActive && seatStatus === "FULL" ? "bg-red-500" : "bg-gray-400"}`}
+			>
+				<Text className="text-white text-sm font-lexendSemiBold p-2">
+					{isActive && seatStatus === "AVAILABLE"
+						? "Seats Available"
+						: isActive && seatStatus === "FULL"
+							? "Seats Full"
+							: "Driver Offline"}
 				</Text>
-				<Switch
-					value={seatStatus === "AVAILABLE"}
-					onValueChange={onSeatToggle}
-				/>
-			</View>
+			</TouchableOpacity>
 
 			<View style={{ marginTop: 30 }}>
 				<Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 12 }}>
@@ -229,12 +232,6 @@ export default function DriverHome() {
 					</View>
 				))}
 			</View>
-
-			{coords && (
-				<Text style={styles.coords}>
-					{coords.latitude.toFixed(5)}, {coords.longitude.toFixed(5)}
-				</Text>
-			)}
 		</View>
 	);
 }
