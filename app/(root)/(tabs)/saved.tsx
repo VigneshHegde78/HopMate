@@ -1,6 +1,7 @@
 import DestSearchBar, { Destination } from "@/components/DestinationSearchBar";
 import { images } from "@/constants";
 import { MaterialIcons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import {
 	FlatList,
@@ -165,7 +166,20 @@ export default function Saved() {
 					data={savedRoutes?.slice(0, 20)}
 					keyExtractor={(item) => item.saved_id}
 					renderItem={({ item }) => (
-						<View className="flex-row bg-white rounded-2xl p-4 mb-3 shadow-sm items-center">
+						<TouchableOpacity
+							onPress={() =>
+								router.push({
+									pathname: "/(root)/(tabs)/home",
+									params: {
+										lat: item.destination_latitude,
+										lng: item.destination_longitude,
+										name: item.nickname,
+										address: item.destination_address,
+									},
+								})
+							}
+							className="flex-row bg-white rounded-2xl p-4 mb-3 shadow-sm items-center"
+						>
 							<Image
 								source={{
 									uri: `https://maps.geoapify.com/v1/staticmap?style=osm-bright&width=600&height=400&center=lonlat:${item.destination_longitude},${item.destination_latitude}&zoom=14&apiKey=${process.env.EXPO_PUBLIC_GEOAPIFY_API_KEY}`,
@@ -188,7 +202,7 @@ export default function Saved() {
 							>
 								<MaterialIcons name="delete" size={16} color={"red"} />
 							</TouchableOpacity>
-						</View>
+						</TouchableOpacity>
 					)}
 					className="my-3"
 				/>
