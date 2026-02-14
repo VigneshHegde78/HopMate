@@ -4,19 +4,15 @@ import InputField from "@/components/InputField";
 import { icons, images } from "@/constants";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { account } from "@/lib/appwrite";
-import { useSignIn, useSSO } from "@clerk/clerk-expo";
-import * as AuthSession from "expo-auth-session";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import React, { useCallback, useState } from "react";
+import React, { useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function SignIn() {
-	const { signIn, setActive, isLoaded } = useSignIn();
-	const { startSSOFlow } = useSSO();
 	const router = useRouter();
 	const { setMode } = useUserMode();
 
@@ -29,34 +25,9 @@ export default function SignIn() {
 	const [isSelected, setIsSelected] = useState(false);
 	const [step, setStep] = useState(1);
 
-	// Google SSO
-	const onPressGoogle = useCallback(async () => {
-		if (!selectedRole) return;
-		const currentUser = await account.get();
-
-		try {
-			const { createdSessionId, setActive } = await startSSOFlow({
-				strategy: "oauth_google",
-				redirectUrl: AuthSession.makeRedirectUri(),
-			});
-			if (createdSessionId) {
-				await setActive!({ session: createdSessionId });
-				// Set the selected mode in context
-				setMode(selectedRole);
-				router.replace(
-					selectedRole === "rider"
-						? "/(root)/(tabs)/home"
-						: "/(root)/(tabs)/driver"
-				);
-			}
-		} catch (err) {
-			console.error(JSON.stringify(err, null, 2));
-		}
-	}, [selectedRole, startSSOFlow, setMode, router]);
-
 	// Email/Password Sign In
 	const onSignInPress = async () => {
-		if (!isLoaded || !selectedRole) return;
+		if (!selectedRole) return;
 
 		if (!email || !password) {
 			setError("Please enter both email and password.");
@@ -231,7 +202,7 @@ export default function SignIn() {
 						className="w-6 h-6"
 					/>
 				)}
-				onPress={onPressGoogle}
+				onPress={() => {}}
 				className="border border-gray-300 mt-2 shadow-black items-center bg-blue-500"
 				bgVariant="outline"
 				textVariant="primary"

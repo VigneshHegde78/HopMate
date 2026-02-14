@@ -4,11 +4,9 @@ import InputField from "@/components/InputField";
 import { icons, images } from "@/constants";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { account, tableDB } from "@/lib/appwrite";
-import { useSignUp, useSSO } from "@clerk/clerk-expo";
-import * as AuthSession from "expo-auth-session";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import React, { useCallback, useState } from "react";
+import React, { useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { ID } from "react-native-appwrite";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -23,8 +21,6 @@ export default function SignUp() {
 		return `${day}-${month}-${year}`;
 	};
 
-	const { signUp, isLoaded } = useSignUp();
-	const { startSSOFlow } = useSSO();
 	const router = useRouter();
 	const { setMode } = useUserMode();
 	const a = account;
@@ -40,27 +36,9 @@ export default function SignUp() {
 	const [isSelected, setIsSelected] = useState(false);
 	const [step, setStep] = useState(1);
 
-	// Google SSO
-	const onPressGoogle = useCallback(async () => {
-		if (!selectedRole) return;
-		try {
-			const { createdSessionId } = await startSSOFlow({
-				strategy: "oauth_google",
-				redirectUrl: AuthSession.makeRedirectUri(),
-			});
-			if (createdSessionId) {
-				await setMode(selectedRole);
-				if (selectedRole === "rider") router.replace("/(root)/(tabs)/home");
-				else router.replace("/(root)/(tabs)/driver");
-			}
-		} catch (err) {
-			console.error(JSON.stringify(err, null, 2));
-		}
-	}, [selectedRole, startSSOFlow, setMode, router]);
-
 	// Email/Password Sign Up
 	const onSignUpPress = async () => {
-		if (!isLoaded || !selectedRole) return;
+		if (!selectedRole) return;
 
 		if (password !== confirmPassword) {
 			setError("Passwords do not match.");
@@ -87,11 +65,11 @@ export default function SignUp() {
 			// 3️⃣ Create table row (profile)
 			const res = await tableDB.createRow({
 				databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
-				tableId: process.env.EXPO_PUBLIC_APPWRITE_USER_TABLE_ID!,
+				tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID!,
 				rowId: user.$id, // one row per user
 				data: {
 					UserID: user.$id,
-					Role: selectedRole, // ✅ rider / driver
+					Role: selectedRole,
 					AboutMe: "Hello! I am using HopMate.",
 					Gender: "",
 					DateOfBirth: null,
@@ -258,7 +236,7 @@ export default function SignUp() {
 						className="w-6 h-6"
 					/>
 				)}
-				onPress={onPressGoogle}
+				onPress={() => {}}
 				className="border border-gray-300 mt-2 shadow-black items-center bg-blue-500"
 				bgVariant="outline"
 				textVariant="primary"

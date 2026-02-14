@@ -25,6 +25,7 @@ const fallbackRegion: Region = {
 export default function MapComponent({
 	radiusKm = 2,
 	onDriversChange,
+	destination,
 }: {
 	radiusKm?: number;
 	onDriversChange?: (
@@ -33,6 +34,11 @@ export default function MapComponent({
 			seatStatus: "AVAILABLE" | "FULL";
 		}[]
 	) => void;
+	destination?: {
+		latitude: number;
+		longitude: number;
+		name?: string;
+	};
 }) {
 	const mapRef = useRef<MapView>(null);
 
@@ -43,6 +49,21 @@ export default function MapComponent({
 	} | null>(null);
 
 	const [drivers, setDrivers] = useState<DriverDoc[]>([]);
+
+	/* ---------------- AUTO-ZOOM TO DESTINATION ---------------- */
+	useEffect(() => {
+		if (destination && mapRef.current) {
+			mapRef.current.animateToRegion(
+				{
+					latitude: destination.latitude,
+					longitude: destination.longitude,
+					latitudeDelta: 0.01,
+					longitudeDelta: 0.01,
+				},
+				600
+			);
+		}
+	}, [destination]);
 
 	/* ---------------- USER LOCATION ---------------- */
 	useEffect(() => {
@@ -163,6 +184,17 @@ export default function MapComponent({
 						icon={require("../assets/icons/marker.png")}
 					/>
 				))}
+
+				{destination && (
+					<Marker
+						coordinate={{
+							latitude: destination.latitude,
+							longitude: destination.longitude,
+						}}
+						title={destination.name || "Destination"}
+						icon={require("../assets/icons/pin.png")}
+					/>
+				)}
 			</MapView>
 		</View>
 	);

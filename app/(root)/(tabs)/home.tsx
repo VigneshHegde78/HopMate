@@ -2,8 +2,8 @@ import DestSearchBar, { Destination } from "@/components/DestinationSearchBar";
 import MapComponent from "@/components/MapComponent";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { useNavigation } from "@react-navigation/native";
-import { router } from "expo-router";
-import React, { useMemo, useRef, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -20,11 +20,40 @@ export default function Home() {
 	const [destination, setDestination] = useState<Destination | null>(null);
 	const [nearbyDrivers, setNearbyDrivers] = useState<NearbyDriver[]>([]);
 	const navigation = useNavigation<any>();
+	const { lat, lng, name, address } = useLocalSearchParams();
+
+	useEffect(() => {
+		if (lat && lng) {
+			const parsedLat = parseFloat(lat as string);
+			const parsedLng = parseFloat(lng as string);
+
+			if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+				setDestination({
+					latitude: parsedLat,
+					longitude: parsedLng,
+					name: (name as string) || "Saved Location",
+					address: (address as string) || "",
+				});
+			}
+		}
+	}, [lat, lng]);
 
 	return (
 		<View style={{ flex: 1 }}>
 			{/* MAP */}
-			<MapComponent radiusKm={2} onDriversChange={setNearbyDrivers} />
+			<MapComponent
+				radiusKm={2}
+				onDriversChange={setNearbyDrivers}
+				destination={
+					destination
+						? {
+								latitude: destination.latitude,
+								longitude: destination.longitude,
+								name: destination.name,
+							}
+						: undefined
+				}
+			/>
 
 			{/* SEARCH */}
 			<View
