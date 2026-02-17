@@ -1,5 +1,5 @@
 import CustomButton from "@/components/CustomButton";
-import DropdownComponent from "@/components/CustomDropDown";
+import DropdownComponent from "@/components/CustomBottomSheet";
 import ProfileFormInput from "@/components/FormInput";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { account, tableDB } from "@/lib/appwrite";

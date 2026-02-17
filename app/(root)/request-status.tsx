@@ -1,20 +1,26 @@
+// request-status.tsx
 import AppwriteClientInstance, { databases } from "@/lib/appwrite";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button, Text, View } from "react-native";
 
 const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
+const COLLECTION_ID = "ride_requests";
 
-export default function RequestStatus() {
-	const { requestId } = useLocalSearchParams<{ requestId: string }>();
-	const router = useRouter();
+type Props = {
+	requestId: string;
+	onAccepted: () => void;
+	onCancelled: () => void;
+};
 
+export default function RequestStatusView({
+	requestId,
+	onAccepted,
+	onCancelled,
+}: Props) {
 	const [status, setStatus] = useState("PENDING");
 
 	useEffect(() => {
-		if (!requestId) return;
-
-		const channel = `databases.${DATABASE_ID}.collections.ride_requests.documents.${requestId}`;
+		const channel = `databases.${DATABASE_ID}.collections.${COLLECTION_ID}.documents.${requestId}`;
 
 		const unsubscribe = AppwriteClientInstance.subscribe(
 			channel,
@@ -30,78 +36,32 @@ export default function RequestStatus() {
 	}, [requestId]);
 
 	useEffect(() => {
-		if (status === "accepted") {
-			router.replace({
-				pathname: "/ride-live",
-				params: { requestId },
-			});
+		if (status === "ACCEPTED") {
+			onAccepted();
 		}
 	}, [status]);
 
+	const cancelRequest = async () => {
+		await databases.updateDocument(DATABASE_ID, COLLECTION_ID, requestId, {
+			Status: "CANCELLED",
+		});
+
+		onCancelled();
+	};
+
 	return (
-		<View
-			style={{
-				flex: 1,
-				justifyContent: "center",
-				alignItems: "center",
-				padding: 24,
-			}}
-		>
+		<View style={{ alignItems: "center" }}>
 			{status === "PENDING" && (
 				<>
 					<Text style={{ fontSize: 22, fontWeight: "bold" }}>
-						Request Sent 🚀
-					</Text>
-					<Text style={{ marginTop: 10, color: "#666" }}>
 						Waiting for driver...
 					</Text>
-
-					<View style={{ marginTop: 20 }}>
-						<Button
-							title="Cancel Request"
-							color="red"
-							onPress={async () => {
-								await databases.updateDocument(
-									DATABASE_ID,
-									"ride_requests",
-									requestId as string,
-									{ Status: "CANCELLED" }
-								);
-
-								router.replace("/");
-							}}
-						/>
-					</View>
-				</>
-			)}
-
-			{status === "ACCEPTED" && (
-				<>
-					<Text style={{ fontSize: 22, fontWeight: "bold", color: "green" }}>
-						Ride Accepted 🎉
-					</Text>
-					<Text style={{ marginTop: 10 }}>Your driver is on the way.</Text>
-
-					<Button
-						title="Go to Ride"
-						onPress={() =>
-							router.replace({
-								pathname: "/ride-live",
-								params: { requestId },
-							})
-						}
-						style={{ marginTop: 20 }}
-					/>
+					<Button title="Cancel Request" onPress={cancelRequest} />
 				</>
 			)}
 
 			{status === "REJECTED" && (
-				<>
-					<Text style={{ fontSize: 22, fontWeight: "bold", color: "red" }}>
-						Ride Rejected ❌
-					</Text>
-					<Text style={{ marginTop: 10 }}>Please try another driver.</Text>
-				</>
+				<Text style={{ color: "red" }}>Ride Rejected</Text>
 			)}
 		</View>
 	);

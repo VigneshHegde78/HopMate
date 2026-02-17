@@ -2,7 +2,7 @@ import AppwriteClientInstance, { databases } from "@/lib/appwrite";
 import * as Location from "expo-location";
 import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import MapView, { Marker, Region } from "react-native-maps";
+import MapView, { Circle, Marker, Region } from "react-native-maps";
 
 /* ================= TYPES ================= */
 
@@ -14,8 +14,8 @@ type DriverDoc = {
 };
 
 const fallbackRegion: Region = {
-	latitude: 19.3036,
-	longitude: 72.8602,
+	latitude: 18.97378,
+	longitude: 72.81069,
 	latitudeDelta: 0.05,
 	longitudeDelta: 0.05,
 };
@@ -172,6 +172,12 @@ export default function MapComponent({
 				style={styles.map}
 				region={region}
 				showsUserLocation
+				mapPadding={{
+					top: 100,
+					right: 20,
+					bottom: 200,
+					left: 20,
+				}}
 			>
 				{drivers.map((d) => (
 					<Marker
@@ -193,6 +199,18 @@ export default function MapComponent({
 						}}
 						title={destination.name || "Destination"}
 						icon={require("../assets/icons/pin.png")}
+					/>
+				)}
+
+				{userLocation && (
+					<Circle
+						center={{
+							latitude: userLocation.latitude,
+							longitude: userLocation.longitude,
+						}}
+						radius={1000}
+						strokeColor="rgba(0,122,255,0.5)"
+						fillColor="rgba(0,122,255,0.2)"
 					/>
 				)}
 			</MapView>

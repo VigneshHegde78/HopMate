@@ -1,7 +1,7 @@
     import { Account, Client, Databases, Storage, TablesDB } from 'react-native-appwrite';
 
     export const appwriteClient = new Client()
-        .setEndpoint(process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT!) // Your Appwrite Endpoint
+        .setEndpoint(process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT!)
         .setProject(process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID!);
 
     export const account = new Account(appwriteClient);
