@@ -1,7 +1,8 @@
 // request-status.tsx
+import CustomButton from "@/components/CustomButton";
 import AppwriteClientInstance, { databases } from "@/lib/appwrite";
 import React, { useEffect, useState } from "react";
-import { Button, Text, View } from "react-native";
+import { Button, Image, Text, View } from "react-native";
 
 const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
 const COLLECTION_ID = "ride_requests";
@@ -53,10 +54,14 @@ export default function RequestStatusView({
 		<View style={{ alignItems: "center" }}>
 			{status === "PENDING" && (
 				<>
-					<Text style={{ fontSize: 22, fontWeight: "bold" }}>
+					<Image
+						source={require("@/assets/images/loader.gif")}
+						style={{ width: 200, height: 200 }}
+					/>
+					<Text style={{ fontSize: 22, fontWeight: "bold", marginBottom: 20 }}>
 						Waiting for driver...
 					</Text>
-					<Button title="Cancel Request" onPress={cancelRequest} />
+					<CustomButton title="Cancel Request" bgVariant="danger" onPress={cancelRequest} />
 				</>
 			)}
 

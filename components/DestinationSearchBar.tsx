@@ -173,7 +173,7 @@ function DestinationSearchBar({
 
 	return (
 		<View style={{ width: "100%", position: "relative", zIndex: 1000 }}>
-			<View className="flex-row items-center gap-1 rounded-3xl bg-white px-5 py-2">
+			<View className="flex-row items-center border border-gray-500 gap-1 rounded-3xl bg-white px-4 py-2 mb-3">
 				<MaterialIcons name="search" size={24} color="#666" />
 				<TextInput
 					value={query}

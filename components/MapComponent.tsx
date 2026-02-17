@@ -172,11 +172,12 @@ export default function MapComponent({
 				style={styles.map}
 				region={region}
 				showsUserLocation
+				rotateEnabled={false}
 				mapPadding={{
-					top: 100,
-					right: 20,
-					bottom: 200,
-					left: 20,
+					top: 25,
+					right: 0,
+					bottom: 0,
+					left: 0,
 				}}
 			>
 				{drivers.map((d) => (

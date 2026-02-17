@@ -1,9 +1,9 @@
 import CustomBottomSheet from "@/components/CustomBottomSheet";
-import DestSearchBar, { Destination } from "@/components/DestinationSearchBar";
+import { Destination } from "@/components/DestinationSearchBar";
 import MapComponent from "@/components/MapComponent";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { View } from "react-native";
+import { Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type NearbyDriver = {
@@ -51,28 +51,15 @@ export default function Home() {
 				}
 			/>
 
-			{/* SEARCH */}
 			<View
-				style={{
-					position: "absolute",
-					top: insets.top + 12,
-					left: 12,
-					right: 12,
-				}}
+				className="flex-row items-end absolute top-0 left-0 right-0 px-4"
+				style={{ paddingTop: insets.top }}
 			>
-				<DestSearchBar onPlaceSelected={setDestination} />
+				<Text className="text-3xl font-lexendBold text-gray-700">HopMate</Text>
 			</View>
 
 			{/* BOTTOM SHEET */}
-			<CustomBottomSheet
-				drivers={nearbyDrivers}
-				onDriverSelect={(driverId) => {
-					router.push({
-						pathname: "/request-ride",
-						params: { driverId },
-					});
-				}}
-			/>
+			<CustomBottomSheet drivers={nearbyDrivers} />
 		</View>
 	);
 }

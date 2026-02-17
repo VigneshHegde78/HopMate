@@ -22,8 +22,7 @@ type Props = {
 
 export default function CustomBottomSheet({ drivers }: Props) {
 	const bottomSheetRef = useRef<BottomSheet>(null);
-	const snapPoints = useMemo(() => ["40%", "85%"], []);
-
+	const snapPoints = useMemo(() => ["40%", "60%", "85%"], []);
 	const [flowState, setFlowState] = useState<
 		"BROWSE" | "REQUEST" | "WAITING" | "CONFIRMED"
 	>("BROWSE");
@@ -31,15 +30,39 @@ export default function CustomBottomSheet({ drivers }: Props) {
 	const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
 	const [destination, setDestination] = useState<Destination | null>(null);
 	const [requestId, setRequestId] = useState<string | null>(null);
+	const handleBack = () => {
+		if (flowState === "REQUEST") {
+			setFlowState("BROWSE");
+			setSelectedDriver(null);
+		}
+
+		if (flowState === "WAITING") {
+			setFlowState("BROWSE");
+			setSelectedDriver(null);
+			setRequestId(null);
+		}
+
+		if (flowState === "CONFIRMED") {
+			setFlowState("BROWSE");
+			setSelectedDriver(null);
+			setRequestId(null);
+		}
+	};
 
 	return (
 		<BottomSheet
 			ref={bottomSheetRef}
-			index={0}
+			index={1}
 			snapPoints={snapPoints}
 			enablePanDownToClose={false}
 		>
-			<BottomSheetView style={{ flex: 1, padding: 16 }}>
+			<BottomSheetView
+				style={{
+					flex: 1,
+					height: "100%",
+					padding: 16,
+				}}
+			>
 				{flowState === "BROWSE" && (
 					<BrowseDriversView
 						drivers={drivers}
@@ -60,6 +83,7 @@ export default function CustomBottomSheet({ drivers }: Props) {
 					<RequestRideView
 						driverId={selectedDriver}
 						destination={destination}
+						onBack={handleBack}
 						onRequestCreated={(id) => {
 							setRequestId(id);
 							setFlowState("WAITING");
@@ -80,7 +104,7 @@ export default function CustomBottomSheet({ drivers }: Props) {
 				)}
 
 				{flowState === "CONFIRMED" && (
-					<Text style={{ fontSize: 22, fontWeight: "bold" }}>
+					<Text style={{ fontSize: 22, fontWeight: "bold", color: "#000" }}>
 						Ride Confirmed 🎉
 					</Text>
 				)}

@@ -1,4 +1,5 @@
 import DestSearchBar, { Destination } from "@/components/DestinationSearchBar";
+import { FontAwesome6 } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
@@ -31,20 +32,18 @@ export default function BrowseDriversView({
 			/>
 
 			{selectedDestination && (
-				<Text style={{ marginVertical: 10 }}>
-					Going to: {selectedDestination.name}
-				</Text>
+				<View className="flex-row items-center gap-2 p-2 mb-3 bg-gray-100 rounded-lg">
+					<FontAwesome6 name="location-arrow" size={18} color="#333" />
+					<Text className="font-lexend text-md">
+						{selectedDestination.name}
+					</Text>
+				</View>
 			)}
 
 			{drivers.map((driver, index) => (
 				<TouchableOpacity
 					key={driver.id}
-					style={{
-						padding: 16,
-						borderRadius: 12,
-						backgroundColor: "#fff",
-						marginBottom: 12,
-					}}
+					className="bg-[#f9fafb] p-4 mb-3 rounded-lg border border-gray-100"
 					disabled={driver.seatStatus === "FULL" || !selectedDestination}
 					onPress={() => onSelect(driver.id)}
 				>
