@@ -1,9 +1,9 @@
 import React, { createContext, ReactNode, useContext, useState } from "react";
 
-export type UserMode = "rider" | "driver";
+export type UserMode = "RIDER" | "DRIVER";
 
 interface UserModeContextType {
-	mode: UserMode;
+	mode: UserMode | null;
 	setMode: (mode: UserMode) => void;
 }
 
@@ -12,7 +12,7 @@ const UserModeContext = createContext<UserModeContextType | undefined>(
 );
 
 export const UserModeProvider = ({ children }: { children: ReactNode }) => {
-	const [mode, setMode] = useState<UserMode>("rider");
+	const [mode, setMode] = useState<UserMode | null>(null);
 
 	return (
 		<UserModeContext.Provider value={{ mode, setMode }}>

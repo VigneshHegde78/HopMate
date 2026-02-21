@@ -36,7 +36,7 @@ export default function Home() {
 
 	return (
 		<Redirect
-			href={mode === "rider" ? "/(root)/(tabs)/home" : "/(root)/(tabs)/driver"}
+			href={mode === "RIDER" ? "/(root)/(tabs)/home" : "/(root)/(tabs)/driver"}
 		/>
 	);
 }

@@ -25,7 +25,7 @@ export default function SignUp() {
 	const { setMode } = useUserMode();
 	const a = account;
 
-	const [selectedRole, setSelectedRole] = useState<"driver" | "rider" | null>(
+	const [selectedRole, setSelectedRole] = useState<"DRIVER" | "RIDER" | null>(
 		null
 	);
 	const [email, setEmail] = useState("");
@@ -34,10 +34,14 @@ export default function SignUp() {
 	const [confirmPassword, setConfirmPassword] = useState("");
 	const [error, setError] = useState("");
 	const [isSelected, setIsSelected] = useState(false);
-	const [step, setStep] = useState(1);
+	const [step, setStep] = useState<"FORM" | "ROLE">("ROLE");
 
 	// Email/Password Sign Up
 	const onSignUpPress = async () => {
+		if (!email || !password || !username || !confirmPassword) {
+			setError("Please fill in all fields.");
+			return;
+		}
 		if (!selectedRole) return;
 
 		if (password !== confirmPassword) {
@@ -70,7 +74,6 @@ export default function SignUp() {
 				data: {
 					UserID: user.$id,
 					Role: selectedRole,
-					AboutMe: "Hello! I am using HopMate.",
 					Gender: "",
 					DateOfBirth: null,
 					PhoneNo: null,
@@ -91,20 +94,37 @@ export default function SignUp() {
 			// 4️⃣ Save mode & redirect
 			setMode(selectedRole);
 
-			if (selectedRole === "rider") router.replace("/(root)/(tabs)/home");
+			if (selectedRole === "RIDER") router.replace("/(root)/(tabs)/home");
 			else router.replace("/(root)/(tabs)/driver");
 		} catch (err: any) {
-			console.error(err);
-			setError(err?.message || "Signup failed");
+			const message = err?.message?.toLowerCase() || "";
+
+			if (message.includes("already exists")) {
+				setError("Email is already registered.");
+			} else if (message.includes("invalid email")) {
+				setError("Enter a valid email address.");
+			} else if (message.includes("password")) {
+				setError("Password must be at least 8 characters.");
+			} else if (message.includes("missing")) {
+				setError("Please fill all required fields.");
+			} else if (message.includes("rate") || message.includes("too many")) {
+				setError("Too many attempts. Try again later.");
+			} else if (message.includes("permission")) {
+				setError("Account setup failed. Contact support.");
+			} else {
+				setError("Unable to create account. Please try again.");
+			}
+
+			console.log("Sign-up error:", err);
 		}
 	};
 
 	const onContinuePress = () => {
-		if (isSelected) setStep(2);
+		if (isSelected) setStep("FORM");
 	};
 
 	// Step 1: Role selection
-	if (step === 1) {
+	if (step === "ROLE") {
 		return (
 			<SafeAreaView className="flex-1 bg-white justify-between px-6">
 				<View className="w-full space-y-6 mt-10">
@@ -113,12 +133,12 @@ export default function SignUp() {
 					</Text>
 
 					<View
-						className={`${isSelected && selectedRole === "rider" ? "border-8 border-blue-700 rounded-3xl p-1" : ""} mb-6`}
+						className={`${isSelected && selectedRole === "RIDER" ? "border-8 border-blue-700 rounded-3xl p-1" : ""} mb-6`}
 					>
 						<TouchableOpacity
 							className="flex-row items-center justify-center bg-blue-700 rounded-xl shadow-md"
 							onPress={() => {
-								setSelectedRole("rider");
+								setSelectedRole("RIDER");
 								setIsSelected(true);
 							}}
 						>
@@ -134,12 +154,12 @@ export default function SignUp() {
 					</View>
 
 					<View
-						className={`${isSelected && selectedRole === "driver" ? "border-8 border-yellow-500 rounded-3xl p-1" : ""} mb-6`}
+						className={`${isSelected && selectedRole === "DRIVER" ? "border-8 border-yellow-500 rounded-3xl p-1" : ""} mb-6`}
 					>
 						<TouchableOpacity
 							className="flex-row items-center justify-center bg-yellow-500 rounded-xl shadow-md"
 							onPress={() => {
-								setSelectedRole("driver");
+								setSelectedRole("DRIVER");
 								setIsSelected(true);
 							}}
 						>
@@ -171,8 +191,8 @@ export default function SignUp() {
 		<SafeAreaView className="w-full h-full px-6 bg-gray-100">
 			<View className="my-4 mt-10">
 				<Text className="text-3xl font-figtreeBold">Create your account</Text>
-				<Text className="text-[#858585] font-figtreeSemiBold mb-5">
-					Sign up as {selectedRole}.
+				<Text className="text-[#858585] font-figtreeSemiBold mb-5 mt-0.5">
+					Enter your details to sign up as {selectedRole}.
 				</Text>
 			</View>
 
@@ -212,10 +232,12 @@ export default function SignUp() {
 				isPassword
 			/>
 
-			<Text className="text-red-600 mb-2">{error}</Text>
+			<Text className="text-red-600 mb-2" numberOfLines={1}>
+				{error}
+			</Text>
 
 			<CustomButton
-				title="Sign Up"
+				title="Create Account"
 				onPress={onSignUpPress}
 				className="rounded-2xl py-3 items-center mb-1"
 				bgVariant="default"

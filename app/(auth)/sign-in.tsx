@@ -1,9 +1,9 @@
 // sign-in.tsx
 import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
-import { icons, images } from "@/constants";
+import { icons } from "@/constants";
 import { useUserMode } from "@/contexts/UserModeContext";
-import { account } from "@/lib/appwrite";
+import { account, tableDB } from "@/lib/appwrite";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
@@ -15,22 +15,14 @@ WebBrowser.maybeCompleteAuthSession();
 export default function SignIn() {
 	const router = useRouter();
 	const { setMode } = useUserMode();
-
-	const [selectedRole, setSelectedRole] = useState<"driver" | "rider" | null>(
-		null
-	);
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState("");
-	const [isSelected, setIsSelected] = useState(false);
-	const [step, setStep] = useState(1);
 
 	// Email/Password Sign In
 	const onSignInPress = async () => {
-		if (!selectedRole) return;
-
 		if (!email || !password) {
-			setError("Please enter both email and password.");
+			setError("Please fill in all fields.");
 			return;
 		}
 
@@ -43,93 +35,39 @@ export default function SignIn() {
 			const currentUser = await account.get();
 			console.log("Sign-in successful:", session);
 
-			router.replace(
-				selectedRole === "rider"
-					? "/(root)/(tabs)/home"
-					: "/(root)/(tabs)/driver"
-			);
+			// Fetch user profile from DB
+			const profile = await tableDB.getRow({
+				databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
+				tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID!,
+				rowId: currentUser.$id,
+			});
 
-			// Set the selected mode in context
-			await setMode(selectedRole);
+			// Get role from database
+			const role = profile.Role;
+
+			// Set context mode
+			setMode(role);
+
+			// Redirect based on stored role
+			if (role === "RIDER") {
+				router.replace("/(root)/(tabs)/home");
+			} else {
+				router.replace("/(root)/(tabs)/driver");
+			}
 		} catch (err: any) {
-			if (err.errors && err.errors.length > 0) setError(err.errors[0].message);
-			else {
-				setError(err.message);
-				console.error("Sign-in error:", err);
+			const message = err?.message?.toLowerCase() || "";
+
+			if (message.includes("invalid")) {
+				setError("Invalid email or password.");
+			} else if (message.includes("not found")) {
+				setError("Account does not exist.");
+			} else if (message.includes("too many")) {
+				setError("Too many attempts. Try later.");
+			} else {
+				setError("Unable to sign in. Please try again.");
 			}
 		}
 	};
-
-	const onContinuePress = () => {
-		if (isSelected) {
-			setStep(2);
-		}
-	};
-
-	// Step 1: Role selection
-	if (step === 1) {
-		return (
-			<SafeAreaView className="flex-1 bg-white justify-between px-6">
-				<View className="w-full space-y-6 mt-10">
-					<Text className="text-3xl font-figtreeExtraBold text-gray-700 mb-12">
-						Hop in, but first… choose your role!
-					</Text>
-
-					<View
-						className={`${isSelected && selectedRole === "rider" ? "border-8 border-blue-700 rounded-3xl p-1" : ""} mb-6`}
-					>
-						<TouchableOpacity
-							className="flex-row items-center justify-center bg-blue-700 rounded-xl shadow-md"
-							onPress={() => {
-								setSelectedRole("rider");
-								setIsSelected(true);
-							}}
-						>
-							<Image
-								source={images.rider}
-								resizeMode="contain"
-								className="w-40 h-40"
-							/>
-							<Text className="text-white text-xl font-lexendSemiBold ml-4">
-								Rider
-							</Text>
-						</TouchableOpacity>
-					</View>
-
-					<View
-						className={`${isSelected && selectedRole === "driver" ? "border-8 border-yellow-500 rounded-3xl p-1" : ""} mb-6`}
-					>
-						<TouchableOpacity
-							className="flex-row items-center justify-center bg-yellow-500 rounded-xl shadow-md"
-							onPress={() => {
-								setSelectedRole("driver");
-								setIsSelected(true);
-							}}
-						>
-							<Text className="ml-4 text-white text-xl font-lexendSemiBold">
-								Driver
-							</Text>
-							<Image
-								source={images.driver}
-								resizeMode="contain"
-								className="w-40 h-40 tint-white"
-							/>
-						</TouchableOpacity>
-					</View>
-				</View>
-
-				<CustomButton
-					title="Continue"
-					onPress={() => {
-						onContinuePress();
-					}}
-					disabled={!selectedRole}
-					className="w-full mt-12 rounded-2xl py-3 mb-5 items-center"
-					bgVariant="default"
-				/>
-			</SafeAreaView>
-		);
-	}
 
 	// Step 2: Sign-in form
 	return (
@@ -138,8 +76,8 @@ export default function SignIn() {
 				<Text className="text-3xl font-figtreeBold">
 					All set, Welcome aboard!
 				</Text>
-				<Text className="text-[#858585] font-figtreeSemiBold mb-5">
-					Enter your email and password to sign in as {selectedRole}.
+				<Text className="text-[#858585] font-figtreeSemiBold mb-5 mt-0.5">
+					Enter your email and password to sign in.
 				</Text>
 			</View>
 
@@ -161,8 +99,8 @@ export default function SignIn() {
 				isPassword
 			/>
 
-			<View className="flex-row justify-between text-start">
-				<Text className="text-red-600">{error}</Text>
+			<View className="flex-row justify-between items-start mt-0.5">
+				<Text className="text-red-600 mb-2">{error}</Text>
 				<TouchableOpacity>
 					<Text className="text-blue-600 text-sm font-lexendSemiBold mb-4">
 						Forgot Password?
@@ -186,7 +124,6 @@ export default function SignIn() {
 			<CustomButton
 				title="Sign Up"
 				onPress={() => {
-					if (selectedRole) setMode(selectedRole);
 					router.replace("/(auth)/sign-up");
 				}}
 				className="rounded-2xl py-3 items-center mb-1"
@@ -206,21 +143,6 @@ export default function SignIn() {
 				className="border border-gray-300 mt-2 shadow-black items-center bg-blue-500"
 				bgVariant="outline"
 				textVariant="primary"
-			/>
-
-			<CustomButton
-				title="Skip for now"
-				onPress={() => {
-					if (selectedRole) setMode(selectedRole);
-
-					router.replace(
-						selectedRole === "rider"
-							? "/(root)/(tabs)/home"
-							: "/(root)/(tabs)/driver"
-					);
-				}}
-				className="rounded-2xl py-3 my-3 items-center"
-				bgVariant="secondary"
 			/>
 		</SafeAreaView>
 	);
