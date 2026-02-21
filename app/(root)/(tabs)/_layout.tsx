@@ -26,12 +26,12 @@ const TabIcon = ({
 
 export default function RootLayout() {
 	const { mode } = useUserMode();
-	const isUserMode = mode === "rider";
+	const isUserMode = mode === "RIDER";
 
 	return (
 		<Tabs
 			key={mode}
-			initialRouteName={!isUserMode ? "home" : "driver"}
+			initialRouteName={isUserMode ? "home" : "driver"}
 			screenOptions={{
 				tabBarActiveTintColor: "#000",
 				tabBarInactiveTintColor: "white",

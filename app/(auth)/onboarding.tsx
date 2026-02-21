@@ -23,37 +23,20 @@ export default function Onboarding() {
 	const scrollViewRef = React.useRef<ScrollView>(null);
 
 	const handleNext = () => {
-		console.log(
-			"HandleNext called - Current index:",
-			activeIndex,
-			"IsTransitioning:",
-			isTransitioning
-		);
-
 		if (isTransitioning) {
-			console.log("Blocked due to transition");
 			return; // prevent multiple clicks
 		}
 
 		if (isLastSlide) {
-			console.log("Last slide, navigating to sign-in");
 			router.replace("/(auth)/sign-in");
 			return;
 		}
 
 		setIsTransitioning(true);
 		const nextIndex = activeIndex + 1;
-		console.log(
-			"Moving to next index:",
-			nextIndex,
-			"Total slides:",
-			onboarding.length
-		);
 
 		if (nextIndex < onboarding.length) {
 			const scrollX = nextIndex * containerWidth;
-			console.log("Scrolling to position:", scrollX, "Width:", containerWidth);
-
 			// Update index immediately for UI feedback
 			setActiveIndex(nextIndex);
 
@@ -64,18 +47,14 @@ export default function Onboarding() {
 						x: scrollX,
 						animated: true,
 					});
-					console.log("ScrollTo executed successfully");
-				} else {
-					console.log("ScrollViewRef is null");
 				}
-			} catch (error) {
-				console.log("ScrollTo error:", error);
+			} catch {
+				// no-op
 			}
 		}
 
 		// Unlock after animation completes
 		setTimeout(() => {
-			console.log("Transition unlocked");
 			setIsTransitioning(false);
 		}, 500); // Increased timeout slightly
 	};
@@ -96,7 +75,6 @@ export default function Onboarding() {
 				className="flex-1"
 				onLayout={(event) => {
 					const { width } = event.nativeEvent.layout;
-					console.log("Container layout width:", width);
 					setContainerWidth(width);
 				}}
 			>
@@ -108,21 +86,10 @@ export default function Onboarding() {
 					onMomentumScrollEnd={(event) => {
 						const scrollX = event.nativeEvent.contentOffset.x;
 						const index = Math.round(scrollX / containerWidth);
-						console.log(
-							"Scroll ended - ScrollX:",
-							scrollX,
-							"Calculated index:",
-							index
-						);
-
 						// Only update if it's different to avoid loops
 						if (index !== activeIndex) {
 							setActiveIndex(index);
 						}
-					}}
-					onScrollEndDrag={(event) => {
-						const scrollX = event.nativeEvent.contentOffset.x;
-						const index = Math.round(scrollX / containerWidth);
 					}}
 					scrollEventThrottle={16}
 					bounces={false}

@@ -6,7 +6,7 @@ import { ActivityIndicator, View } from "react-native";
 
 export default function Home() {
 	const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
-	const { mode } = useUserMode();
+	const { mode, loading } = useUserMode();
 
 	const checkUser = async () => {
 		try {
@@ -22,7 +22,7 @@ export default function Home() {
 	}, []);
 
 	// 🔄 Wait until both login + mode are ready
-	if (isLoggedIn === null || !mode) {
+	if (isLoggedIn === null || loading) {
 		return (
 			<View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
 				<ActivityIndicator size="large" />
@@ -31,7 +31,7 @@ export default function Home() {
 	}
 
 	if (!isLoggedIn) {
-		return <Redirect href="/(auth)/sign-in" />;
+		return <Redirect href="/(auth)/onboarding" />;
 	}
 
 	return (

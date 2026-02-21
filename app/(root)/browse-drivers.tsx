@@ -57,6 +57,12 @@ export default function BrowseDriversView({
 					</Text>
 				</TouchableOpacity>
 			))}
+
+			{drivers.length === 0 && (
+				<View className="items-center justify-center mt-10">
+					<Text className="text-gray-500">No nearby drivers found.</Text>
+				</View>
+			)}
 		</View>
 	);
 }
