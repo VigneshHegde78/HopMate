@@ -1,4 +1,5 @@
 import AppwriteClientInstance, { databases } from "@/lib/appwrite";
+import { type DriverDoc } from "@/types";
 import * as Location from "expo-location";
 import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -6,19 +7,33 @@ import MapView, { Circle, Marker, Region } from "react-native-maps";
 
 /* ================= TYPES ================= */
 
-type DriverDoc = {
-	id: string;
-	latitude: number;
-	longitude: number;
-	seatStatus: "AVAILABLE" | "FULL";
-};
-
 const fallbackRegion: Region = {
 	latitude: 18.97378,
 	longitude: 72.81069,
 	latitudeDelta: 0.05,
 	longitudeDelta: 0.05,
 };
+
+/* ================= DISTANCE UTILITY ================= */
+
+function calculateDistance(
+	lat1: number,
+	lon1: number,
+	lat2: number,
+	lon2: number,
+) {
+	const R = 6371; // Earth radius in km
+	const dLat = ((lat2 - lat1) * Math.PI) / 180;
+	const dLon = ((lon2 - lon1) * Math.PI) / 180;
+
+	const a =
+		Math.sin(dLat / 2) ** 2 +
+		Math.cos((lat1 * Math.PI) / 180) *
+			Math.cos((lat2 * Math.PI) / 180) *
+			Math.sin(dLon / 2) ** 2;
+
+	return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 /* ================= COMPONENT ================= */
 
@@ -28,12 +43,7 @@ export default function MapComponent({
 	destination,
 }: {
 	radiusKm?: number;
-	onDriversChange?: (
-		drivers: {
-			id: string;
-			seatStatus: "AVAILABLE" | "FULL";
-		}[]
-	) => void;
+	onDriversChange?: (drivers: DriverDoc[]) => void;
 	destination?: {
 		latitude: number;
 		longitude: number;
@@ -60,17 +70,18 @@ export default function MapComponent({
 					latitudeDelta: 0.01,
 					longitudeDelta: 0.01,
 				},
-				600
+				600,
 			);
 		}
 	}, [destination]);
 
-	/* ---------------- USER LOCATION ---------------- */
+	/* ---------------- USER LOCATION WATCH ---------------- */
 	useEffect(() => {
 		let sub: Location.LocationSubscription;
 
 		(async () => {
 			const { status } = await Location.requestForegroundPermissionsAsync();
+
 			if (status !== "granted") return;
 
 			sub = await Location.watchPositionAsync(
@@ -84,9 +95,10 @@ export default function MapComponent({
 						latitude: loc.coords.latitude,
 						longitude: loc.coords.longitude,
 					};
+
 					setUserLocation(coords);
 					setRegion((r) => ({ ...r, ...coords }));
-				}
+				},
 			);
 		})();
 
@@ -105,6 +117,10 @@ export default function MapComponent({
 				.filter((d: any) => d.isActive === true)
 				.map((d: any) => ({
 					id: d.DriverId,
+					name: d.DriverName ?? "Unknown Driver",
+					vehicleType: d.VehicleType,
+					vehicleModel: d.VehicleModel,
+					plateNumber: d.PlateNumber,
 					latitude: Number(d.DriverLatitude),
 					longitude: Number(d.DriverLongitude),
 					seatStatus: d.seatStatus ?? "AVAILABLE",
@@ -136,33 +152,39 @@ export default function MapComponent({
 
 					const updated: DriverDoc = {
 						id: doc.DriverId,
+						name: doc.DriverName ?? "Unknown Driver",
+						vehicleType: doc.VehicleType,
+						vehicleModel: doc.VehicleModel,
+						plateNumber: doc.PlateNumber,
 						latitude: Number(doc.DriverLatitude),
 						longitude: Number(doc.DriverLongitude),
 						seatStatus: doc.seatStatus ?? "AVAILABLE",
 					};
 
-					const exists = prev.find((d) => d.id === doc.DriverId);
-					if (exists) {
-						return prev.map((d) => (d.id === doc.DriverId ? updated : d));
-					}
-
 					return [...prev, updated];
 				});
-			}
+			},
 		);
 
 		return () => unsubscribe();
 	}, []);
 
-	/* ---------------- EMIT TO RIDER UI ---------------- */
+	/* ---------------- FILTER BY RADIUS + EMIT ---------------- */
 	useEffect(() => {
-		const simplified = drivers.map((d) => ({
-			id: d.id,
-			seatStatus: d.seatStatus,
-		}));
+		if (!userLocation) return;
 
-		onDriversChange?.(simplified);
-	}, [drivers]);
+		const filtered = drivers.filter((d) => {
+			const dist = calculateDistance(
+				userLocation.latitude,
+				userLocation.longitude,
+				d.latitude,
+				d.longitude,
+			);
+			return dist <= radiusKm;
+		});
+
+		onDriversChange?.(filtered);
+	}, [drivers, userLocation, radiusKm, onDriversChange]);
 
 	/* ---------------- UI ---------------- */
 	return (
@@ -173,12 +195,6 @@ export default function MapComponent({
 				region={region}
 				showsUserLocation
 				rotateEnabled={false}
-				mapPadding={{
-					top: 25,
-					right: 0,
-					bottom: 0,
-					left: 0,
-				}}
 			>
 				{drivers.map((d) => (
 					<Marker
@@ -205,11 +221,8 @@ export default function MapComponent({
 
 				{userLocation && (
 					<Circle
-						center={{
-							latitude: userLocation.latitude,
-							longitude: userLocation.longitude,
-						}}
-						radius={1000}
+						center={userLocation}
+						radius={radiusKm * 1000}
 						strokeColor="rgba(0,122,255,0.5)"
 						fillColor="rgba(0,122,255,0.2)"
 					/>

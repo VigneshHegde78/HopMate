@@ -1,5 +1,7 @@
 import { TextInputProps, TouchableOpacityProps } from "react-native";
 
+export type VehicleType = "BIKE" | "AUTO" | "SEDAN" | "SUV";
+
 declare interface Driver {
 	driver_id: number;
 	first_name: string;

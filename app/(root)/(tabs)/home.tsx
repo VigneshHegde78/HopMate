@@ -1,23 +1,47 @@
 import CustomBottomSheet from "@/components/CustomBottomSheet";
 import { Destination } from "@/components/DestinationSearchBar";
 import MapComponent from "@/components/MapComponent";
+import type { DriverDoc } from "@/types";
+import * as Location from "expo-location";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type NearbyDriver = {
-	id: string;
-	seatStatus: "AVAILABLE" | "FULL";
-};
-
 export default function Home() {
 	const insets = useSafeAreaInsets();
 
 	const [destination, setDestination] = useState<Destination | null>(null);
-	const [nearbyDrivers, setNearbyDrivers] = useState<NearbyDriver[]>([]);
+	const [nearbyDrivers, setNearbyDrivers] = useState<DriverDoc[]>([]);
+	const [userLocation, setUserLocation] = useState<{
+		latitude: number;
+		longitude: number;
+	} | null>(null);
+
 	const { lat, lng, name, address } = useLocalSearchParams();
 
+	/**
+	 * Get user location once
+	 */
+	useEffect(() => {
+		const getLocation = async () => {
+			const { status } = await Location.requestForegroundPermissionsAsync();
+
+			if (status !== "granted") return;
+
+			const loc = await Location.getCurrentPositionAsync({});
+			setUserLocation({
+				latitude: loc.coords.latitude,
+				longitude: loc.coords.longitude,
+			});
+		};
+
+		getLocation();
+	}, []);
+
+	/**
+	 * Handle destination from params
+	 */
 	useEffect(() => {
 		if (lat && lng) {
 			const parsedLat = parseFloat(lat as string);
@@ -32,7 +56,7 @@ export default function Home() {
 				});
 			}
 		}
-	}, [lat, lng]);
+	}, [lat, lng, name, address]);
 
 	return (
 		<View style={{ flex: 1 }}>
@@ -51,6 +75,7 @@ export default function Home() {
 				}
 			/>
 
+			{/* HEADER */}
 			<View
 				className="flex-row items-end absolute top-0 left-0 right-0 px-4"
 				style={{ paddingTop: insets.top }}
@@ -59,21 +84,7 @@ export default function Home() {
 			</View>
 
 			{/* BOTTOM SHEET */}
-			<CustomBottomSheet drivers={nearbyDrivers} />
+			<CustomBottomSheet drivers={nearbyDrivers} userLocation={userLocation} />
 		</View>
 	);
 }
-
-const styles = {
-	card: {
-		padding: 16,
-		borderRadius: 8,
-		backgroundColor: "#fff",
-		marginBottom: 12,
-	},
-	driverTitle: {
-		fontSize: 18,
-		fontWeight: "bold" as const,
-		marginBottom: 8,
-	},
-};

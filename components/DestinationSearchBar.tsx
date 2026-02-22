@@ -1,3 +1,4 @@
+import { type Destination } from "@/types";
 import { MaterialIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
@@ -16,13 +17,6 @@ type Prediction = {
 		main_text?: string;
 		secondary_text?: string;
 	};
-};
-
-export type Destination = {
-	latitude: number;
-	longitude: number;
-	name?: string;
-	address?: string;
 };
 
 function DestinationSearchBar({
@@ -47,7 +41,7 @@ function DestinationSearchBar({
 	useEffect(() => {
 		if (!apiKey) {
 			console.warn(
-				"⚠️ GEOAPIFY_API_KEY is undefined. Set EXPO_PUBLIC_GEOAPIFY_API_KEY in your .env file."
+				"⚠️ GEOAPIFY_API_KEY is undefined. Set EXPO_PUBLIC_GEOAPIFY_API_KEY in your .env file.",
 			);
 		}
 	}, [apiKey]);
@@ -75,7 +69,7 @@ function DestinationSearchBar({
 				setLoading(true);
 				setStatusMsg(null);
 				const url = new URL(
-					`https://api.geoapify.com/v1/geocode/autocomplete?text=${query}&apiKey=${apiKey}`
+					`https://api.geoapify.com/v1/geocode/autocomplete?text=${query}&apiKey=${apiKey}`,
 				);
 
 				const res = await fetch(url.toString(), { signal: controller.signal });
@@ -289,3 +283,4 @@ function DestinationSearchBar({
 }
 
 export default DestinationSearchBar;
+export { Destination };
