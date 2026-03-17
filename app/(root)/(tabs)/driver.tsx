@@ -1,13 +1,11 @@
 import LocationGate from "@/components/LocationGate";
-import AppwriteClientInstance, {
-	account,
-	databases,
-	tableDB,
-} from "@/lib/appwrite";
+import AppwriteClientInstance, { account, databases } from "@/lib/appwrite";
 import { type RideRequest, type SeatStatus, type VehicleType } from "@/types";
+import { MaterialIcons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import React, { useEffect, useState } from "react";
 import {
+	Image,
 	ScrollView,
 	StyleSheet,
 	Switch,
@@ -16,6 +14,7 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
+import { Query } from "react-native-appwrite";
 
 /* ================= CONFIG ================= */
 
@@ -27,11 +26,11 @@ const COLLECTION_ID = "user_location";
 export default function DriverHome() {
 	const [driverId, setDriverId] = useState<string | null>(null);
 	const [driverName, setDriverName] = useState<string>("");
-	const [carType, setCarType] = useState<string>("");
 	const [vehicleType, setVehicleType] = useState<VehicleType | "">("");
 	const [vehicleModel, setVehicleModel] = useState<string>("");
 	const [plateNumber, setPlateNumber] = useState<string>("");
 	const [hasVehicleDetails, setHasVehicleDetails] = useState(true);
+	const [isEditingVehicle, setIsEditingVehicle] = useState(false);
 	const [showVehicleTypeDropdown, setShowVehicleTypeDropdown] = useState(false);
 	const vehicleTypes: { label: string; value: VehicleType }[] = [
 		{ label: "Auto", value: "AUTO" },
@@ -41,11 +40,32 @@ export default function DriverHome() {
 	];
 	const [isActive, setIsActive] = useState(false);
 	const [requests, setRequests] = useState<RideRequest[]>([]);
+	const [activeRides, setActiveRides] = useState<RideRequest[]>([]);
 	const [seatStatus, setSeatStatus] = useState<SeatStatus>("AVAILABLE");
 	const [coords, setCoords] = useState<{
 		latitude: number;
 		longitude: number;
 	} | null>(null);
+
+	const getDriverLocationPermissions = (id: string) => [
+		`read("users")`,
+		`update("user:${id}")`,
+		`delete("user:${id}")`,
+	];
+
+	const vehicleTypeLabelMap: Record<VehicleType, string> = {
+		AUTO: "Auto",
+		BIKE: "Bike",
+		SUV: "SUV",
+		SEDAN: "Sedan",
+	};
+
+	const vehicleImageMap: Record<VehicleType, any> = {
+		AUTO: require("@/assets/images/rickshaw.png"),
+		BIKE: require("@/assets/images/bike.png"),
+		SUV: require("@/assets/images/suv.png"),
+		SEDAN: require("@/assets/images/sedan.png"),
+	};
 
 	/* ---------------- AUTH & PROFILE LOAD ---------------- */
 	useEffect(() => {
@@ -55,30 +75,38 @@ export default function DriverHome() {
 				setDriverId(user.$id);
 				setDriverName(user.name || "Unknown Driver");
 
-				const profile = await tableDB.getRow({
-					databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
-					tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID!,
-					rowId: user.$id,
-				});
+				const locationDoc = await databases.getDocument(
+					DATABASE_ID,
+					COLLECTION_ID,
+					user.$id,
+				);
 
-				setCarType(profile?.CarType || "");
-				setVehicleType((profile?.VehicleType as VehicleType) || "");
-				setVehicleModel(profile?.VehicleModel || "");
-				setPlateNumber(profile?.PlateNumber || "");
+				setVehicleType((locationDoc?.VehicleType as VehicleType) || "");
+				setVehicleModel(locationDoc?.VehicleModel || "");
+				setPlateNumber(locationDoc?.PlateNumber || "");
 
 				// Check if vehicle type, model, or plate number is null/empty
 				// Show vehicle form only if ANY of these fields are missing
 				const vehicleTypeExists =
-					profile?.VehicleType !== null && profile?.VehicleType !== "";
+					locationDoc?.VehicleType !== null && locationDoc?.VehicleType !== "";
 				const vehicleModelExists =
-					profile?.VehicleModel !== null && profile?.VehicleModel !== "";
+					locationDoc?.VehicleModel !== null &&
+					locationDoc?.VehicleModel !== "";
 				const plateNumberExists =
-					profile?.PlateNumber !== null && profile?.PlateNumber !== "";
+					locationDoc?.PlateNumber !== null && locationDoc?.PlateNumber !== "";
 
 				const hasDetails =
 					vehicleTypeExists && vehicleModelExists && plateNumberExists;
 				setHasVehicleDetails(hasDetails);
-			} catch (err) {
+			} catch (err: any) {
+				if (err?.code === 404) {
+					setVehicleType("");
+					setVehicleModel("");
+					setPlateNumber("");
+					setHasVehicleDetails(false);
+					return;
+				}
+
 				console.error("Error loading driver:", err);
 			}
 		};
@@ -100,6 +128,32 @@ export default function DriverHome() {
 	useEffect(() => {
 		if (!driverId) return;
 
+		const loadAcceptedRides = async () => {
+			try {
+				const res = await databases.listDocuments(
+					DATABASE_ID,
+					"ride_requests",
+					[
+						Query.equal("DriverId", driverId),
+						Query.equal("Status", "ACCEPTED"),
+						Query.orderDesc("$createdAt"),
+					],
+				);
+
+				setActiveRides(
+					res.documents.map((doc: any) => ({
+						id: doc.$id,
+						destinationName: doc.DestinationName,
+						seatsRequested: doc.SeatsRequested,
+					})),
+				);
+			} catch (err) {
+				console.error("Error loading accepted rides:", err);
+			}
+		};
+
+		loadAcceptedRides();
+
 		const channel = `databases.${DATABASE_ID}.collections.ride_requests.documents`;
 
 		const unsubscribe = AppwriteClientInstance.subscribe(
@@ -109,22 +163,32 @@ export default function DriverHome() {
 				if (!doc) return;
 				if (doc.DriverId !== driverId) return;
 
-				setRequests((prev) => {
-					if (doc.Status !== "PENDING") {
-						return prev.filter((r) => r.id !== doc.$id);
-					}
+				const ride: RideRequest = {
+					id: doc.$id,
+					destinationName: doc.DestinationName,
+					seatsRequested: doc.SeatsRequested,
+				};
 
-					if (prev.find((r) => r.id === doc.$id)) return prev;
+				if (doc.Status === "PENDING") {
+					setRequests((prev) => {
+						if (prev.find((r) => r.id === ride.id)) return prev;
+						return [...prev, ride];
+					});
+					setActiveRides((prev) => prev.filter((r) => r.id !== ride.id));
+					return;
+				}
 
-					return [
-						...prev,
-						{
-							id: doc.$id,
-							destinationName: doc.DestinationName,
-							seatsRequested: doc.SeatsRequested,
-						},
-					];
-				});
+				if (doc.Status === "ACCEPTED") {
+					setRequests((prev) => prev.filter((r) => r.id !== ride.id));
+					setActiveRides((prev) => {
+						if (prev.find((r) => r.id === ride.id)) return prev;
+						return [...prev, ride];
+					});
+					return;
+				}
+
+				setRequests((prev) => prev.filter((r) => r.id !== ride.id));
+				setActiveRides((prev) => prev.filter((r) => r.id !== ride.id));
 			},
 		);
 
@@ -138,6 +202,7 @@ export default function DriverHome() {
 		status: SeatStatus = seatStatus,
 	) => {
 		if (!driverId) return;
+		const permissions = getDriverLocationPermissions(driverId);
 
 		const payload = {
 			DriverId: driverId,
@@ -153,6 +218,7 @@ export default function DriverHome() {
 				COLLECTION_ID,
 				driverId,
 				payload,
+				permissions,
 			);
 		} catch (err: any) {
 			if (err.code === 404) {
@@ -161,6 +227,7 @@ export default function DriverHome() {
 					COLLECTION_ID,
 					driverId,
 					payload,
+					permissions,
 				);
 			} else {
 				console.error("Driver upsert failed:", err);
@@ -173,29 +240,67 @@ export default function DriverHome() {
 			alert("Please fill in all vehicle details");
 			return;
 		}
+		const permissions = getDriverLocationPermissions(driverId);
 
 		try {
-			await tableDB.updateRow({
-				databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
-				tableId: process.env.EXPO_PUBLIC_APPWRITE_DRIVER_COLLECTION_ID!,
-				rowId: driverId,
-				data: {
+			await databases.updateDocument(
+				DATABASE_ID,
+				COLLECTION_ID,
+				driverId,
+				{
 					VehicleType: vehicleType,
 					VehicleModel: vehicleModel,
 					PlateNumber: plateNumber,
 				},
-			});
+				permissions,
+			);
 
 			setHasVehicleDetails(true);
+			setIsEditingVehicle(false);
+			setShowVehicleTypeDropdown(false);
 			alert("Vehicle details saved successfully!");
-		} catch (err) {
+		} catch (err: any) {
+			if (err?.code === 404) {
+				try {
+					await databases.createDocument(
+						DATABASE_ID,
+						COLLECTION_ID,
+						driverId,
+						{
+							DriverId: driverId,
+							DriverLatitude: coords?.latitude ?? 0,
+							DriverLongitude: coords?.longitude ?? 0,
+							seatStatus,
+							isActive,
+							VehicleType: vehicleType,
+							VehicleModel: vehicleModel,
+							PlateNumber: plateNumber,
+						},
+						permissions,
+					);
+					setHasVehicleDetails(true);
+					setIsEditingVehicle(false);
+					setShowVehicleTypeDropdown(false);
+					alert("Vehicle details saved successfully!");
+				} catch (createErr) {
+					console.error("Error creating driver details:", createErr);
+					alert("Failed to save vehicle details");
+				}
+				return;
+			}
+
 			console.error("Error saving vehicle details:", err);
 			alert("Failed to save vehicle details");
 		}
 	};
 
+	const onEditVehicleSelected = () => {
+		setIsEditingVehicle(true);
+		setShowVehicleTypeDropdown(false);
+	};
+
 	/* -------- VEHICLE DETAILS FORM -------- */
-	if (!hasVehicleDetails) {
+	if (!hasVehicleDetails || isEditingVehicle) {
 		return (
 			<ScrollView
 				style={styles.container}
@@ -203,10 +308,12 @@ export default function DriverHome() {
 			>
 				<View className="mt-8 mb-6">
 					<Text className="text-2xl font-lexendBold text-gray-800 mb-2">
-						Vehicle Details
+						{isEditingVehicle ? "Edit Vehicle Details" : "Vehicle Details"}
 					</Text>
 					<Text className="text-gray-600 font-lexendSemiBold">
-						Please add your vehicle information to start driving
+						{isEditingVehicle
+							? "Update your vehicle information"
+							: "Please add your vehicle information to start driving"}
 					</Text>
 				</View>
 
@@ -281,6 +388,20 @@ export default function DriverHome() {
 						Save Vehicle Details
 					</Text>
 				</TouchableOpacity>
+
+				{hasVehicleDetails && isEditingVehicle && (
+					<TouchableOpacity
+						onPress={() => {
+							setIsEditingVehicle(false);
+							setShowVehicleTypeDropdown(false);
+						}}
+						className="border border-gray-300 rounded-lg py-4 items-center"
+					>
+						<Text className="text-gray-700 font-lexendSemiBold text-base">
+							Cancel
+						</Text>
+					</TouchableOpacity>
+				)}
 			</ScrollView>
 		);
 	}
@@ -313,15 +434,33 @@ export default function DriverHome() {
 		});
 	};
 
+	const completeRide = async (requestId: string) => {
+		await databases.updateDocument(DATABASE_ID, "ride_requests", requestId, {
+			Status: "COMPLETED",
+		});
+	};
+
+	const selectedVehicleLabel = vehicleType
+		? vehicleTypeLabelMap[vehicleType]
+		: "Vehicle";
+	const selectedVehicleImage = vehicleType
+		? vehicleImageMap[vehicleType]
+		: vehicleImageMap.BIKE;
+
 	/* ---------------- UI ---------------- */
 	return (
 		<LocationGate>
 			<View style={styles.container}>
 				<View className="flex-row items-center justify-between">
-					<View className="flex-row items-end">
-						<Text className="text-2xl font-lexendBold">HopMate</Text>
-						<Text className="ml-1.5 mb-0.5 text-gray-600 font-lexendSemiBold text-sm">
-							Driver
+					<View>
+						<View className="flex-row items-end">
+							<Text className="text-2xl font-lexendBold">HopMate</Text>
+							<Text className="ml-1.5 mb-0.5 text-gray-600 font-lexendSemiBold text-sm">
+								Driver
+							</Text>
+						</View>
+						<Text className="text-xs text-gray-500 font-lexendSemiBold mt-1">
+							{driverName || "Unknown Driver"}
 						</Text>
 					</View>
 					<View className="flex-row items-center gap-1">
@@ -365,7 +504,67 @@ export default function DriverHome() {
 					</Text>
 				</TouchableOpacity>
 
+				{/* ---------------- Vehicle INFO card ---------------- */}
+				<View className="flex-row justify-between bg-[#efefef] rounded-lg mt-4 shadow-sm">
+					<View className="flex-col items-start gap-1 justify-end ml-5 mb-5">
+						<Text className="font-lexendBold text-2xl text-gray-600">
+							{selectedVehicleLabel}
+						</Text>
+						<View>
+							<Text className="font-lexendSemiBold text-lg text-gray-500">
+								{vehicleModel}
+							</Text>
+							<Text className="font-lexendSemiBold text-lg text-gray-500">
+								{plateNumber}
+							</Text>
+						</View>
+					</View>
+					<View className="flex rounded-r-lg overflow-hidden">
+						<Image
+							source={selectedVehicleImage}
+							className="h-36 w-48"
+							resizeMode="contain"
+						/>
+					</View>
+					<TouchableOpacity
+						onPress={onEditVehicleSelected}
+						className="absolute bottom-3 right-3 bg-white p-1 rounded-full shadow-sm"
+					>
+						<MaterialIcons name="edit" size={24} color="gray" />
+					</TouchableOpacity>
+				</View>
+
+				{/* ---------------- RIDE REQUESTS ---------------- */}
 				<View style={{ marginTop: 30 }}>
+					<Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 12 }}>
+						Active Rides
+					</Text>
+
+					{activeRides.length === 0 && (
+						<Text style={{ color: "#666", marginBottom: 18 }}>
+							No active rides
+						</Text>
+					)}
+
+					{activeRides.map((r) => (
+						<View key={`active-${r.id}`} style={styles.card}>
+							<Text style={{ marginBottom: 6 }}>
+								📍 Destination: {r.destinationName}
+							</Text>
+
+							<Text style={{ marginBottom: 8 }}>
+								🪑 Seats: {r.seatsRequested}
+							</Text>
+
+							<TouchableOpacity
+								onPress={() => completeRide(r.id)}
+								style={[styles.btn, { backgroundColor: "#2563eb" }]}
+							>
+								<Text style={{ color: "#fff" }}>Complete Ride</Text>
+							</TouchableOpacity>
+						</View>
+					))}
+
 					<Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 12 }}>
 						Ride Requests
 					</Text>

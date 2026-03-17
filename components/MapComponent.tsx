@@ -14,6 +14,10 @@ const fallbackRegion: Region = {
 	longitudeDelta: 0.05,
 };
 
+function hasValidCoordinates(lat: number, lng: number) {
+	return Number.isFinite(lat) && Number.isFinite(lng);
+}
+
 /* ================= DISTANCE UTILITY ================= */
 
 function calculateDistance(
@@ -59,6 +63,15 @@ export default function MapComponent({
 	} | null>(null);
 
 	const [drivers, setDrivers] = useState<DriverDoc[]>([]);
+
+	const upsertDriver = (list: DriverDoc[], incoming: DriverDoc) => {
+		const index = list.findIndex((d) => d.id === incoming.id);
+		if (index === -1) return [...list, incoming];
+
+		const next = [...list];
+		next[index] = incoming;
+		return next;
+	};
 
 	/* ---------------- AUTO-ZOOM TO DESTINATION ---------------- */
 	useEffect(() => {
@@ -108,25 +121,39 @@ export default function MapComponent({
 	/* ---------------- INITIAL FETCH ---------------- */
 	useEffect(() => {
 		const fetchDrivers = async () => {
-			const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
-			const COLLECTION_ID = "user_location";
+			try {
+				const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
+				const COLLECTION_ID = "user_location";
 
-			const res = await databases.listDocuments(DATABASE_ID, COLLECTION_ID);
+				const res = await databases.listDocuments(DATABASE_ID, COLLECTION_ID);
 
-			const activeDrivers = res.documents
-				.filter((d: any) => d.isActive === true)
-				.map((d: any) => ({
-					id: d.DriverId,
-					name: d.DriverName ?? "Unknown Driver",
-					vehicleType: d.VehicleType,
-					vehicleModel: d.VehicleModel,
-					plateNumber: d.PlateNumber,
-					latitude: Number(d.DriverLatitude),
-					longitude: Number(d.DriverLongitude),
-					seatStatus: d.seatStatus ?? "AVAILABLE",
-				}));
+				const dedupedByDriver = new Map<string, DriverDoc>();
 
-			setDrivers(activeDrivers);
+				res.documents
+					.filter((d: any) => d.isActive === true && d.DriverId)
+					.forEach((d: any) => {
+						const latitude = Number(d.DriverLatitude);
+						const longitude = Number(d.DriverLongitude);
+						if (!hasValidCoordinates(latitude, longitude)) return;
+
+						dedupedByDriver.set(d.DriverId, {
+							id: d.DriverId,
+							name: d.DriverName ?? "Unknown Driver",
+							vehicleType: d.VehicleType,
+							vehicleModel: d.VehicleModel,
+							plateNumber: d.PlateNumber,
+							latitude,
+							longitude,
+							seatStatus: d.seatStatus ?? "AVAILABLE",
+						});
+					});
+
+				const activeDrivers = Array.from(dedupedByDriver.values());
+
+				setDrivers(activeDrivers);
+			} catch (err) {
+				console.error("Failed to fetch active drivers:", err);
+			}
 		};
 
 		fetchDrivers();
@@ -143,12 +170,16 @@ export default function MapComponent({
 			channel,
 			(event: any) => {
 				const doc = event.payload;
-				if (!doc) return;
+				if (!doc?.DriverId) return;
 
 				setDrivers((prev) => {
 					if (!doc.isActive) {
 						return prev.filter((d) => d.id !== doc.DriverId);
 					}
+
+					const latitude = Number(doc.DriverLatitude);
+					const longitude = Number(doc.DriverLongitude);
+					if (!hasValidCoordinates(latitude, longitude)) return prev;
 
 					const updated: DriverDoc = {
 						id: doc.DriverId,
@@ -156,12 +187,12 @@ export default function MapComponent({
 						vehicleType: doc.VehicleType,
 						vehicleModel: doc.VehicleModel,
 						plateNumber: doc.PlateNumber,
-						latitude: Number(doc.DriverLatitude),
-						longitude: Number(doc.DriverLongitude),
+						latitude,
+						longitude,
 						seatStatus: doc.seatStatus ?? "AVAILABLE",
 					};
 
-					return [...prev, updated];
+					return upsertDriver(prev, updated);
 				});
 			},
 		);
@@ -171,7 +202,12 @@ export default function MapComponent({
 
 	/* ---------------- FILTER BY RADIUS + EMIT ---------------- */
 	useEffect(() => {
-		if (!userLocation) return;
+		if (!onDriversChange) return;
+
+		if (!userLocation) {
+			onDriversChange(drivers);
+			return;
+		}
 
 		const filtered = drivers.filter((d) => {
 			const dist = calculateDistance(
@@ -183,7 +219,7 @@ export default function MapComponent({
 			return dist <= radiusKm;
 		});
 
-		onDriversChange?.(filtered);
+		onDriversChange(filtered);
 	}, [drivers, userLocation, radiusKm, onDriversChange]);
 
 	/* ---------------- UI ---------------- */
