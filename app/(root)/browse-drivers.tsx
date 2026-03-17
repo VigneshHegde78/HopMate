@@ -46,19 +46,31 @@ export default function BrowseDriversView({
 				}}
 			/>
 
-			{selectedDestination && (
+			{selectedDestination ? (
 				<View className="flex-row items-center gap-2 p-2 mb-3 bg-gray-100 rounded-lg">
 					<FontAwesome6 name="location-arrow" size={18} color="#333" />
 					<Text className="font-lexend text-md">
-						{selectedDestination.name}
+						{selectedDestination.name ||
+							selectedDestination.address ||
+							"Selected destination"}
+					</Text>
+				</View>
+			) : (
+				<View className="p-2 mb-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+					<Text className="text-yellow-700 text-sm font-lexendSemiBold">
+						Search a destination above to select a driver
 					</Text>
 				</View>
 			)}
 
-			{driversWithDistance.map((driver, index) => (
+			{driversWithDistance.map((driver) => (
 				<TouchableOpacity
 					key={driver.id}
-					className="bg-[#f9fafb] p-4 mb-3 rounded-lg border border-gray-100"
+					className={`p-4 mb-3 rounded-lg border ${
+						driver.seatStatus === "FULL" || !selectedDestination
+							? "bg-gray-100 border-gray-200 opacity-50"
+							: "bg-[#f9fafb] border-gray-100"
+					}`}
 					disabled={driver.seatStatus === "FULL" || !selectedDestination}
 					onPress={() => onSelect(driver.id)}
 				>

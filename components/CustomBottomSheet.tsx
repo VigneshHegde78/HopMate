@@ -49,9 +49,7 @@ export default function CustomBottomSheet({ drivers, userLocation }: Props) {
 						drivers={drivers}
 						userLocation={userLocation}
 						onDestinationSelected={(dest) => {
-							if (dest.name) {
-								setDestination(dest);
-							}
+							setDestination(dest);
 						}}
 						onSelect={(driverId) => {
 							if (!destination) return;
