@@ -73,6 +73,40 @@ export default function MapComponent({
 		return next;
 	};
 
+	const fetchActiveDrivers = async () => {
+		try {
+			const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
+			const COLLECTION_ID = "user_location";
+
+			const res = await databases.listDocuments(DATABASE_ID, COLLECTION_ID);
+
+			const dedupedByDriver = new Map<string, DriverDoc>();
+
+			res.documents
+				.filter((d: any) => d.isActive === true && d.DriverId)
+				.forEach((d: any) => {
+					const latitude = Number(d.DriverLatitude);
+					const longitude = Number(d.DriverLongitude);
+					if (!hasValidCoordinates(latitude, longitude)) return;
+
+					dedupedByDriver.set(d.DriverId, {
+						id: d.DriverId,
+						name: d.DriverName ?? "Unknown Driver",
+						vehicleType: d.VehicleType,
+						vehicleModel: d.VehicleModel,
+						plateNumber: d.PlateNumber,
+						latitude,
+						longitude,
+						seatStatus: d.seatStatus ?? "AVAILABLE",
+					});
+				});
+
+			setDrivers(Array.from(dedupedByDriver.values()));
+		} catch (err) {
+			console.error("Failed to fetch active drivers:", err);
+		}
+	};
+
 	/* ---------------- AUTO-ZOOM TO DESTINATION ---------------- */
 	useEffect(() => {
 		if (destination && mapRef.current) {
@@ -120,43 +154,10 @@ export default function MapComponent({
 
 	/* ---------------- INITIAL FETCH ---------------- */
 	useEffect(() => {
-		const fetchDrivers = async () => {
-			try {
-				const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
-				const COLLECTION_ID = "user_location";
+		fetchActiveDrivers();
 
-				const res = await databases.listDocuments(DATABASE_ID, COLLECTION_ID);
-
-				const dedupedByDriver = new Map<string, DriverDoc>();
-
-				res.documents
-					.filter((d: any) => d.isActive === true && d.DriverId)
-					.forEach((d: any) => {
-						const latitude = Number(d.DriverLatitude);
-						const longitude = Number(d.DriverLongitude);
-						if (!hasValidCoordinates(latitude, longitude)) return;
-
-						dedupedByDriver.set(d.DriverId, {
-							id: d.DriverId,
-							name: d.DriverName ?? "Unknown Driver",
-							vehicleType: d.VehicleType,
-							vehicleModel: d.VehicleModel,
-							plateNumber: d.PlateNumber,
-							latitude,
-							longitude,
-							seatStatus: d.seatStatus ?? "AVAILABLE",
-						});
-					});
-
-				const activeDrivers = Array.from(dedupedByDriver.values());
-
-				setDrivers(activeDrivers);
-			} catch (err) {
-				console.error("Failed to fetch active drivers:", err);
-			}
-		};
-
-		fetchDrivers();
+		const interval = setInterval(fetchActiveDrivers, 5000);
+		return () => clearInterval(interval);
 	}, []);
 
 	/* ---------------- REALTIME SUBSCRIBE ---------------- */

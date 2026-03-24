@@ -61,7 +61,7 @@ export default function RequestRideView({
 				DestinationLng: destination.longitude,
 				SeatsRequested: seats,
 				Status: "PENDING",
-			}
+			},
 		);
 
 		onRequestCreated(doc.$id);

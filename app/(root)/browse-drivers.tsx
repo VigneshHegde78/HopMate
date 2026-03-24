@@ -80,7 +80,6 @@ export default function BrowseDriversView({
 						<>
 							<Text className="text-gray-600 text-sm">
 								{driver.vehicleModel}
-								{driver.vehicleType && ` (${driver.vehicleType})`}
 							</Text>
 							{driver.plateNumber && (
 								<Text className="text-gray-500 text-xs">

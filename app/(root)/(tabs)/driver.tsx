@@ -47,12 +47,6 @@ export default function DriverHome() {
 		longitude: number;
 	} | null>(null);
 
-	const getDriverLocationPermissions = (id: string) => [
-		`read("users")`,
-		`update("user:${id}")`,
-		`delete("user:${id}")`,
-	];
-
 	const vehicleTypeLabelMap: Record<VehicleType, string> = {
 		AUTO: "Auto",
 		BIKE: "Bike",
@@ -73,7 +67,7 @@ export default function DriverHome() {
 			try {
 				const user = await account.get();
 				setDriverId(user.$id);
-				setDriverName(user.name || "Unknown Driver");
+				setDriverName(user.name || "Driver #" + user.$id.substring(0, 5));
 
 				const locationDoc = await databases.getDocument(
 					DATABASE_ID,
@@ -128,9 +122,27 @@ export default function DriverHome() {
 	useEffect(() => {
 		if (!driverId) return;
 
-		const loadAcceptedRides = async () => {
+		const loadDriverRides = async () => {
 			try {
-				const res = await databases.listDocuments(
+				const pendingRes = await databases.listDocuments(
+					DATABASE_ID,
+					"ride_requests",
+					[
+						Query.equal("DriverId", driverId),
+						Query.equal("Status", "PENDING"),
+						Query.orderDesc("$createdAt"),
+					],
+				);
+
+				setRequests(
+					pendingRes.documents.map((doc: any) => ({
+						id: doc.$id,
+						destinationName: doc.DestinationName,
+						seatsRequested: doc.SeatsRequested,
+					})),
+				);
+
+				const acceptedRes = await databases.listDocuments(
 					DATABASE_ID,
 					"ride_requests",
 					[
@@ -141,18 +153,18 @@ export default function DriverHome() {
 				);
 
 				setActiveRides(
-					res.documents.map((doc: any) => ({
+					acceptedRes.documents.map((doc: any) => ({
 						id: doc.$id,
 						destinationName: doc.DestinationName,
 						seatsRequested: doc.SeatsRequested,
 					})),
 				);
 			} catch (err) {
-				console.error("Error loading accepted rides:", err);
+				console.error("Error loading driver rides:", err);
 			}
 		};
 
-		loadAcceptedRides();
+		loadDriverRides();
 
 		const channel = `databases.${DATABASE_ID}.collections.ride_requests.documents`;
 
@@ -202,7 +214,6 @@ export default function DriverHome() {
 		status: SeatStatus = seatStatus,
 	) => {
 		if (!driverId) return;
-		const permissions = getDriverLocationPermissions(driverId);
 
 		const payload = {
 			DriverId: driverId,
@@ -218,7 +229,6 @@ export default function DriverHome() {
 				COLLECTION_ID,
 				driverId,
 				payload,
-				permissions,
 			);
 		} catch (err: any) {
 			if (err.code === 404) {
@@ -227,7 +237,6 @@ export default function DriverHome() {
 					COLLECTION_ID,
 					driverId,
 					payload,
-					permissions,
 				);
 			} else {
 				console.error("Driver upsert failed:", err);
@@ -240,20 +249,13 @@ export default function DriverHome() {
 			alert("Please fill in all vehicle details");
 			return;
 		}
-		const permissions = getDriverLocationPermissions(driverId);
 
 		try {
-			await databases.updateDocument(
-				DATABASE_ID,
-				COLLECTION_ID,
-				driverId,
-				{
-					VehicleType: vehicleType,
-					VehicleModel: vehicleModel,
-					PlateNumber: plateNumber,
-				},
-				permissions,
-			);
+			await databases.updateDocument(DATABASE_ID, COLLECTION_ID, driverId, {
+				VehicleType: vehicleType,
+				VehicleModel: vehicleModel,
+				PlateNumber: plateNumber,
+			});
 
 			setHasVehicleDetails(true);
 			setIsEditingVehicle(false);
@@ -262,22 +264,16 @@ export default function DriverHome() {
 		} catch (err: any) {
 			if (err?.code === 404) {
 				try {
-					await databases.createDocument(
-						DATABASE_ID,
-						COLLECTION_ID,
-						driverId,
-						{
-							DriverId: driverId,
-							DriverLatitude: coords?.latitude ?? 0,
-							DriverLongitude: coords?.longitude ?? 0,
-							seatStatus,
-							isActive,
-							VehicleType: vehicleType,
-							VehicleModel: vehicleModel,
-							PlateNumber: plateNumber,
-						},
-						permissions,
-					);
+					await databases.createDocument(DATABASE_ID, COLLECTION_ID, driverId, {
+						DriverId: driverId,
+						DriverLatitude: coords?.latitude ?? 0,
+						DriverLongitude: coords?.longitude ?? 0,
+						seatStatus,
+						isActive,
+						VehicleType: vehicleType,
+						VehicleModel: vehicleModel,
+						PlateNumber: plateNumber,
+					});
 					setHasVehicleDetails(true);
 					setIsEditingVehicle(false);
 					setShowVehicleTypeDropdown(false);
@@ -460,7 +456,7 @@ export default function DriverHome() {
 							</Text>
 						</View>
 						<Text className="text-xs text-gray-500 font-lexendSemiBold mt-1">
-							{driverName || "Unknown Driver"}
+							{driverName || "Driver"}
 						</Text>
 					</View>
 					<View className="flex-row items-center gap-1">

@@ -20,9 +20,7 @@ export default function Home() {
 
 	const { lat, lng, name, address } = useLocalSearchParams();
 
-	/**
-	 * Get user location once
-	 */
+	/* Get user location once */
 	useEffect(() => {
 		const getLocation = async () => {
 			const { status } = await Location.requestForegroundPermissionsAsync();
@@ -39,9 +37,7 @@ export default function Home() {
 		getLocation();
 	}, []);
 
-	/**
-	 * Handle destination from params
-	 */
+	/* Handle destination from params */
 	useEffect(() => {
 		if (lat && lng) {
 			const parsedLat = parseFloat(lat as string);
