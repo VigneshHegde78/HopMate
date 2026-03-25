@@ -448,17 +448,13 @@ export default function DriverHome() {
 		<LocationGate>
 			<View style={styles.container}>
 				<View className="flex-row items-center justify-between">
-					<View>
-						<View className="flex-row items-end">
-							<Text className="text-2xl font-lexendBold">HopMate</Text>
-							<Text className="ml-1.5 mb-0.5 text-gray-600 font-lexendSemiBold text-sm">
-								Driver
-							</Text>
-						</View>
-						<Text className="text-xs text-gray-500 font-lexendSemiBold mt-1">
-							{driverName || "Driver"}
+					<View className="flex-row items-end">
+						<Text className="text-3xl font-lexendBold">HopMate</Text>
+						<Text className="ml-1.5 mb-0.5 text-gray-600 font-lexendSemiBold text-sm">
+							Driver
 						</Text>
 					</View>
+
 					<View className="flex-row items-center gap-1">
 						<View
 							className={`${isActive ? "bg-green-600" : "bg-red-500"} p-1 rounded-full`}
@@ -531,17 +527,7 @@ export default function DriverHome() {
 				</View>
 
 				{/* ---------------- RIDE REQUESTS ---------------- */}
-				<View style={{ marginTop: 30 }}>
-					<Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 12 }}>
-						Active Rides
-					</Text>
-
-					{activeRides.length === 0 && (
-						<Text style={{ color: "#666", marginBottom: 18 }}>
-							No active rides
-						</Text>
-					)}
-
+				<View className="flex-1 mt-6">
 					{activeRides.map((r) => (
 						<View key={`active-${r.id}`} style={styles.card}>
 							<Text style={{ marginBottom: 6 }}>
@@ -565,37 +551,43 @@ export default function DriverHome() {
 						Ride Requests
 					</Text>
 
-					{requests.length === 0 && (
-						<Text style={{ color: "#666" }}>No requests yet</Text>
-					)}
+					<View
+						className={`flex w-full h-96 ${requests.length === 0 ? "items-center" : ""}`}
+					>
+						{requests.length === 0 && (
+							<Text className="text-center text-gray-500">No requests yet</Text>
+						)}
 
-					{requests.map((r) => (
-						<View key={r.id} style={styles.card}>
-							<Text style={{ marginBottom: 6 }}>
-								📍 Destination: {r.destinationName}
-							</Text>
+						<ScrollView>
+							{requests.map((r) => (
+								<View key={r.id} style={styles.card}>
+									<Text style={{ marginBottom: 6 }}>
+										📍 Destination: {r.destinationName}
+									</Text>
 
-							<Text style={{ marginBottom: 8 }}>
-								🪑 Seats: {r.seatsRequested}
-							</Text>
+									<Text style={{ marginBottom: 8 }}>
+										🪑 Seats: {r.seatsRequested}
+									</Text>
 
-							<View style={{ flexDirection: "row" }}>
-								<TouchableOpacity
-									onPress={() => acceptRequest(r.id)}
-									style={[styles.btn, { backgroundColor: "green" }]}
-								>
-									<Text style={{ color: "#fff" }}>Accept</Text>
-								</TouchableOpacity>
+									<View style={{ flexDirection: "row" }}>
+										<TouchableOpacity
+											onPress={() => acceptRequest(r.id)}
+											style={[styles.btn, { backgroundColor: "green" }]}
+										>
+											<Text style={{ color: "#fff" }}>Accept</Text>
+										</TouchableOpacity>
 
-								<TouchableOpacity
-									onPress={() => rejectRequest(r.id)}
-									style={[styles.btn, { backgroundColor: "red" }]}
-								>
-									<Text style={{ color: "#fff" }}>Reject</Text>
-								</TouchableOpacity>
-							</View>
-						</View>
-					))}
+										<TouchableOpacity
+											onPress={() => rejectRequest(r.id)}
+											style={[styles.btn, { backgroundColor: "red" }]}
+										>
+											<Text style={{ color: "#fff" }}>Reject</Text>
+										</TouchableOpacity>
+									</View>
+								</View>
+							))}
+						</ScrollView>
+					</View>
 				</View>
 			</View>
 		</LocationGate>

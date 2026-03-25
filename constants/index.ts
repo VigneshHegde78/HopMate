@@ -12,10 +12,10 @@ import home from "../assets/icons/home.png";
 import list from "../assets/icons/list.png";
 import lock from "../assets/icons/lock.png";
 import map from "../assets/icons/map.png";
-import marker from "../assets/icons/marker.png";
 import marker1 from "../assets/icons/marker-1.png";
 import marker2 from "../assets/icons/marker-2.png";
 import marker3 from "../assets/icons/marker-3.png";
+import marker from "../assets/icons/marker.png";
 import out from "../assets/icons/out.png";
 import person from "../assets/icons/person.png";
 import pin from "../assets/icons/pin.png";
@@ -32,6 +32,7 @@ import driver from "../assets/images/driver.png";
 import emptyList from "../assets/images/emptyList.png";
 import getStarted from "../assets/images/get-started.png";
 import message from "../assets/images/message.png";
+import noLocation from "../assets/images/no-location.png";
 import noResult from "../assets/images/no-result.png";
 import onboarding1 from "../assets/images/onboarding1.png";
 import onboarding2 from "../assets/images/onboarding2.png";
@@ -53,6 +54,7 @@ export const images = {
 	emptyList,
 	rider,
 	driver,
+	noLocation,
 };
 
 export const icons = {

@@ -1,7 +1,5 @@
 import CustomButton from "@/components/CustomButton";
-import DropdownComponent from "@/components/CustomBottomSheet";
 import ProfileFormInput from "@/components/FormInput";
-import { useUserMode } from "@/contexts/UserModeContext";
 import { account, tableDB } from "@/lib/appwrite";
 import {
 	ddmmyyyyToISO,
@@ -12,6 +10,7 @@ import {
 	isValidDDMMYYYY,
 } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
+import { Picker } from "@react-native-picker/picker";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -25,10 +24,14 @@ import {
 import { Query } from "react-native-appwrite";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
+const PROFILE_TABLE_ID =
+	process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID ||
+	process.env.EXPO_PUBLIC_APPWRITE_USER_TABLE_ID;
+
 const Profile = () => {
 	const [profile, setProfile] = useState<any>(null);
 	const [loadingProfile, setLoadingProfile] = useState(true);
-	const { mode, setMode } = useUserMode();
 	const [isEditing, setIsEditing] = useState(false);
 
 	const profileInputs = [
@@ -38,12 +41,18 @@ const Profile = () => {
 
 	// Fetch profile
 	const fetchProfile = async () => {
+		if (!PROFILE_TABLE_ID) {
+			Alert.alert("Configuration error", "Profile table is not configured.");
+			setLoadingProfile(false);
+			return;
+		}
+
 		try {
 			const authUser = await account.get();
 
 			const res = await tableDB.listRows({
-				databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
-				tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID!,
+				databaseId: DATABASE_ID,
+				tableId: PROFILE_TABLE_ID,
 				queries: [Query.equal("UserID", authUser.$id)], // ✅ Correct
 			});
 
@@ -70,6 +79,11 @@ const Profile = () => {
 
 	// Save profile
 	const handleSave = async () => {
+		if (!PROFILE_TABLE_ID) {
+			Alert.alert("Configuration error", "Profile table is not configured.");
+			return;
+		}
+
 		if (!profile || !profile.$id) {
 			Alert.alert("Error", "Profile not found!");
 			return;
@@ -77,8 +91,8 @@ const Profile = () => {
 
 		try {
 			const updated = await tableDB.updateRow({
-				databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
-				tableId: process.env.EXPO_PUBLIC_APPWRITE_USER_TABLE_ID!,
+				databaseId: DATABASE_ID,
+				tableId: PROFILE_TABLE_ID,
 				rowId: profile.$id, // Use the actual Appwrite row id
 				data: {
 					Name: profile.Name || "",
@@ -114,7 +128,7 @@ const Profile = () => {
 		return (
 			<SafeAreaView className="flex-1 px-5">
 				<View className="flex-row items-center justify-between my-5">
-					<Text className="text-2xl font-figtreeBold my-5">Edit Profile</Text>
+					<Text className="text-3xl font-figtreeBold my-5">Edit Profile</Text>
 					<CustomButton
 						title="Save"
 						onPress={handleSave}
@@ -127,20 +141,6 @@ const Profile = () => {
 
 				<View className="flex-col items-start justify-center bg-white rounded-lg shadow-sm shadow-neutral-300 py-5 my-3 w-full">
 					<View className="w-full px-5">
-						{/* {profileInputs.map((input) => (
-							<View key={input.label} className="mb-4">
-								<Text className="font-figtreeSemiBold text-gray-800 mb-1">
-									{input.label}
-								</Text>
-								<ProfileFormInput
-									placeholder={input.label}
-									defaultValue={profile?.[input.key] || ""}
-									onChangeText={(text) =>
-										setProfile({ ...profile, [input.key]: text })
-									}
-								/>
-							</View>
-						))} */}
 						<View>
 							{profileInputs.map((input) => (
 								<View key={input.key} className="mb-4">
@@ -157,7 +157,7 @@ const Profile = () => {
 												const numericValue = text.replace(/[^0-9]/g, "");
 												setProfile({ ...profile, PhoneNo: numericValue });
 											}}
-											className="flex w-full h-12 border border-gray-300 rounded-md"
+											className="flex w-full h-12 border border-gray-800 rounded-md"
 										/>
 									) : (
 										<ProfileFormInput
@@ -177,7 +177,7 @@ const Profile = () => {
 						</Text>
 						<TextInput
 							placeholder="Enter User Name"
-							className="flex w-full  border border-gray-300 rounded-md mb-4"
+							className="flex w-full  border border-gray-800 rounded-md mb-4"
 							value={profile?.UserName || ""}
 							onChangeText={(text) =>
 								setProfile({ ...profile, UserName: text })
@@ -189,11 +189,14 @@ const Profile = () => {
 						</Text>
 						<TextInput
 							placeholder="Add a description about yourself"
-							className="flex w-full h-20 border border-gray-300 rounded-md mb-4"
+							className="flex w-full h-20 border border-gray-800 rounded-md mb-4"
 							value={profile?.AboutMe || ""}
 							onChangeText={(text) => setProfile({ ...profile, AboutMe: text })}
 						/>
 
+						<Text className="font-figtreeSemiBold text-gray-800 mb-1">
+							Date of Birth
+						</Text>
 						<TextInput
 							placeholder="DD-MM-YYYY"
 							keyboardType="number-pad"
@@ -207,7 +210,7 @@ const Profile = () => {
 									if (!isAbove18(formatted)) {
 										Alert.alert(
 											"Invalid DOB",
-											"You must be at least 18 years old."
+											"You must be at least 18 years old.",
 										);
 										return;
 									}
@@ -215,18 +218,25 @@ const Profile = () => {
 
 								setProfile({ ...profile, DateOfBirth: formatted });
 							}}
-							className="flex w-full h-12 border border-gray-300 rounded-md px-3"
+							className="flex w-full h-12 border border-gray-800 rounded-md px-3"
 						/>
 
-						<Text className="font-figtreeSemiBold text-gray-800 mb-0.5 mt-4">
+						<Text className="font-figtreeSemiBold text-gray-800 mt-4 mb-1">
 							Gender
 						</Text>
-						<DropdownComponent
-							selectedValue={profile?.Gender || ""}
-							onValueChange={(value) =>
-								setProfile({ ...profile, Gender: value })
-							}
-						/>
+						<View className="border border-gray-800 rounded-md overflow-hidden">
+							<Picker
+								selectedValue={profile?.Gender || ""}
+								onValueChange={(value) =>
+									setProfile({ ...profile, Gender: value })
+								}
+							>
+								<Picker.Item label="Select Gender" value="" />
+								<Picker.Item label="Male" value="Male" />
+								<Picker.Item label="Female" value="Female" />
+								<Picker.Item label="Other" value="Other" />
+							</Picker>
+						</View>
 					</View>
 				</View>
 			</SafeAreaView>
@@ -239,7 +249,7 @@ const Profile = () => {
 				className="px-5"
 				contentContainerStyle={{ paddingBottom: 120 }}
 			>
-				<Text className="text-2xl font-figtreeBold my-5">Profile</Text>
+				<Text className="text-3xl font-figtreeBold my-5">Profile</Text>
 
 				<View>
 					{/* Profile Picture Placeholder */}
@@ -249,11 +259,9 @@ const Profile = () => {
 						</Text>
 					</View>
 				</View>
-				<Text className="text-lg font-figtreeBold">
-					{profile?.Name || "John Scott"}
-				</Text>
-				<Text className="text-sm font-figtreeSemiBold text-gray-500 mb-5">
-					{profile?.UserName}
+
+				<Text className="text-lg font-figtreeBold mb-5">
+					{profile?.Name || "No Name Found"}
 				</Text>
 
 				<CustomButton

@@ -1,8 +1,9 @@
 import AppwriteClientInstance, { account, databases } from "@/lib/appwrite";
 import React, { useEffect, useState } from "react";
-import { FlatList, Text, View } from "react-native";
+import { FlatList, Image, Text, View } from "react-native";
 import { Query } from "react-native-appwrite";
 import { SafeAreaView } from "react-native-safe-area-context";
+import "../../global.css";
 
 const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
 const COLLECTION_ID = "ride_requests";
@@ -12,6 +13,33 @@ type CompletedRide = {
 	destinationName: string;
 	seatsRequested: number;
 	completedAt: string;
+	destinationLat: number | null;
+	destinationLng: number | null;
+};
+
+const formatCompletedDate = (iso: string) => {
+	const date = new Date(iso);
+	if (Number.isNaN(date.getTime())) return "Not available";
+	return date.toLocaleDateString("en-US", {
+		month: "short",
+		day: "2-digit",
+		year: "numeric",
+	});
+};
+
+const formatCompletedTime = (iso: string) => {
+	const date = new Date(iso);
+	if (Number.isNaN(date.getTime())) return "Not available";
+	return date.toLocaleTimeString([], {
+		hour: "2-digit",
+		minute: "2-digit",
+	});
+};
+
+const getMapUrl = (lng: number | null, lat: number | null) => {
+	if (lat == null || lng == null) return null;
+
+	return `https://maps.geoapify.com/v1/staticmap?style=osm-bright&width=600&height=400&center=lonlat:${lng},${lat}&zoom=14&apiKey=${process.env.EXPO_PUBLIC_GEOAPIFY_API_KEY}`;
 };
 
 const History = () => {
@@ -51,6 +79,14 @@ const History = () => {
 						destinationName: doc.DestinationName || "Unknown destination",
 						seatsRequested: doc.SeatsRequested || 0,
 						completedAt: doc.$updatedAt,
+						destinationLat:
+							typeof doc.DestinationLat === "number"
+								? doc.DestinationLat
+								: null,
+						destinationLng:
+							typeof doc.DestinationLng === "number"
+								? doc.DestinationLng
+								: null,
 					})),
 				);
 			} catch (err) {
@@ -74,6 +110,14 @@ const History = () => {
 							destinationName: doc.DestinationName || "Unknown destination",
 							seatsRequested: doc.SeatsRequested || 0,
 							completedAt: doc.$updatedAt,
+							destinationLat:
+								typeof doc.DestinationLat === "number"
+									? doc.DestinationLat
+									: null,
+							destinationLng:
+								typeof doc.DestinationLng === "number"
+									? doc.DestinationLng
+									: null,
 						};
 
 						const withoutCurrent = prev.filter((r) => r.id !== doc.$id);
@@ -91,10 +135,20 @@ const History = () => {
 
 	if (loading) {
 		return (
-			<SafeAreaView className="flex-1 bg-white">
-				<View className="flex-1 justify-center items-center p-5">
-					<Text className="text-base font-lexendRegular text-gray-600">
-						Loading history...
+			<SafeAreaView className="flex-1 bg-gray-100 p-3">
+				<View className="items-center justify-center mt-10">
+					<Text className="text-gray-500">Loading history...</Text>
+				</View>
+			</SafeAreaView>
+		);
+	}
+
+	if (!driverId) {
+		return (
+			<SafeAreaView className="flex-1 bg-gray-100 p-3">
+				<View className="flex-1 items-center justify-center px-6">
+					<Text className="text-center text-gray-600 font-lexendRegular">
+						Unable to load your driver profile right now.
 					</Text>
 				</View>
 			</SafeAreaView>
@@ -102,12 +156,12 @@ const History = () => {
 	}
 
 	return (
-		<SafeAreaView className="flex-1 bg-white">
-			<View className="flex-1 p-5">
-				<Text className="text-2xl font-figtreeBold text-gray-800 mb-1">
+		<SafeAreaView className="flex-1 bg-gray-100 p-3">
+			<View className="flex-1">
+				<Text className="text-3xl font-lexendBold text-[#454545]">
 					Ride History
 				</Text>
-				<Text className="text-sm font-lexendRegular text-gray-500 mb-4">
+				<Text className="text-md font-lexendRegular text-gray-500 mb-2">
 					Completed rides are shown here.
 				</Text>
 
@@ -115,23 +169,75 @@ const History = () => {
 					data={rides}
 					keyExtractor={(item) => item.id}
 					renderItem={({ item }) => (
-						<View className="bg-gray-100 rounded-xl p-4 mb-3">
-							<Text className="font-lexendSemiBold text-gray-800 mb-1">
-								Destination: {item.destinationName}
-							</Text>
-							<Text className="font-lexendRegular text-gray-600 mb-1">
-								Seats: {item.seatsRequested}
-							</Text>
-							<Text className="font-lexendRegular text-gray-500 text-xs">
-								Completed: {new Date(item.completedAt).toLocaleString()}
-							</Text>
+						<View className="flex items-center justify-center rounded-xl bg-white mb-3 shadow-sm shadow-neutral-300">
+							<View className="flex flex-col items-start justify-center p-3 w-full">
+								<View className="flex flex-row items-center justify-between w-full">
+									{getMapUrl(item.destinationLng, item.destinationLat) ? (
+										<Image
+											source={{
+												uri: getMapUrl(
+													item.destinationLng,
+													item.destinationLat,
+												)!,
+											}}
+											style={{ width: 94, height: 84, borderRadius: 10 }}
+										/>
+									) : (
+										<View className="w-[94px] h-[84px] rounded-lg bg-gray-200 items-center justify-center">
+											<Text className="text-[11px] text-gray-500 font-lexendRegular text-center px-2">
+												Map unavailable
+											</Text>
+										</View>
+									)}
+
+									<View className="flex-1 ml-4">
+										<Text className="text-sm font-lexendRegular text-gray-500 mb-1">
+											Destination
+										</Text>
+										<Text
+											className="text-base font-lexendSemiBold text-gray-800"
+											numberOfLines={2}
+										>
+											{item.destinationName}
+										</Text>
+									</View>
+								</View>
+
+								<View className="flex flex-col w-full mt-4 rounded-lg bg-gray-100 p-3">
+									<View className="flex-row items-center justify-between mb-3">
+										<Text className="text-sm font-lexendRegular text-gray-500">
+											Seats
+										</Text>
+										<Text className="text-sm font-lexendSemiBold text-gray-800">
+											{item.seatsRequested}
+										</Text>
+									</View>
+
+									<View className="flex-row items-center justify-between mb-3">
+										<Text className="text-sm font-lexendRegular text-gray-500">
+											Completed Date
+										</Text>
+										<Text className="text-sm font-lexendSemiBold text-gray-800">
+											{formatCompletedDate(item.completedAt)}
+										</Text>
+									</View>
+
+									<View className="flex-row items-center justify-between">
+										<Text className="text-sm font-lexendRegular text-gray-500">
+											Completed Time
+										</Text>
+										<Text className="text-sm font-lexendSemiBold text-gray-800">
+											{formatCompletedTime(item.completedAt)}
+										</Text>
+									</View>
+								</View>
+							</View>
 						</View>
 					)}
+					className="my-3"
 					ListEmptyComponent={
-						<View className="mt-12 items-center">
-							<Text className="text-base font-lexendRegular text-gray-600 text-center">
-								No completed rides yet.
-							</Text>
+						<View className="items-center justify-center mt-10">
+							<Text className="text-gray-500">No completed rides yet.</Text>
 						</View>
 					}
 				/>
