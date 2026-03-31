@@ -3,7 +3,7 @@ import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
 import { icons, images } from "@/constants";
 import { useUserMode } from "@/contexts/UserModeContext";
-import { account, tableDB } from "@/lib/appwrite";
+import { account, signInWithGoogle, tableDB } from "@/lib/appwrite";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
@@ -23,10 +23,9 @@ export default function SignUp() {
 
 	const router = useRouter();
 	const { setMode } = useUserMode();
-	const a = account;
 
 	const [selectedRole, setSelectedRole] = useState<"DRIVER" | "RIDER" | null>(
-		null
+		null,
 	);
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -55,7 +54,7 @@ export default function SignUp() {
 				ID.unique(),
 				email.trim(),
 				password,
-				username.trim()
+				username.trim(),
 			);
 
 			console.log("Auth user created:", user);
@@ -116,6 +115,17 @@ export default function SignUp() {
 			}
 
 			console.log("Sign-up error:", err);
+		}
+	};
+
+	const onGoogleSignUpPress = async () => {
+		try {
+			console.log("Google Sign-Up button pressed");
+			await signInWithGoogle();
+			// The deep link listener in _layout.tsx will handle the rest.
+		} catch (err) {
+			setError("Failed to sign up with Google.");
+			console.error(err);
 		}
 	};
 
@@ -232,14 +242,12 @@ export default function SignUp() {
 				isPassword
 			/>
 
-			<Text className="text-red-600 mb-2" numberOfLines={1}>
-				{error}
-			</Text>
+			<Text className="text-red-600 mt-2">{error}</Text>
 
 			<CustomButton
-				title="Create Account"
+				title="Sign Up"
 				onPress={onSignUpPress}
-				className="rounded-2xl py-3 items-center mb-1"
+				className="rounded-2xl py-3 items-center mt-4 mb-1"
 				bgVariant="default"
 			/>
 
@@ -250,7 +258,16 @@ export default function SignUp() {
 			</View>
 
 			<CustomButton
-				title="Sign in with Google"
+				title="Sign In"
+				onPress={() => {
+					router.replace("/(auth)/sign-in");
+				}}
+				className="rounded-2xl py-3 items-center mb-1 mt-4"
+				bgVariant="default"
+			/>
+
+			<CustomButton
+				title="Sign up with Google"
 				IconLeft={() => (
 					<Image
 						source={icons.google}
@@ -258,17 +275,10 @@ export default function SignUp() {
 						className="w-6 h-6"
 					/>
 				)}
-				onPress={() => {}}
+				onPress={onGoogleSignUpPress}
 				className="border border-gray-300 mt-2 shadow-black items-center bg-blue-500"
 				bgVariant="outline"
 				textVariant="primary"
-			/>
-
-			<CustomButton
-				title="Already have an account? Sign In"
-				onPress={() => router.replace("/(auth)/sign-in")}
-				className="rounded-2xl py-3 my-3 items-center"
-				bgVariant="secondary"
 			/>
 		</SafeAreaView>
 	);

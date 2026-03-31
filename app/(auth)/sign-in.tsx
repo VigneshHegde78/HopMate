@@ -3,7 +3,7 @@ import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
 import { icons } from "@/constants";
 import { useUserMode } from "@/contexts/UserModeContext";
-import { account, tableDB } from "@/lib/appwrite";
+import { account, signInWithGoogle, tableDB } from "@/lib/appwrite";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
@@ -66,6 +66,17 @@ export default function SignIn() {
 			} else {
 				setError("Unable to sign in. Please try again.");
 			}
+		}
+	};
+
+	const onGoogleSignInPress = async () => {
+		try {
+			console.log("Google Sign-In button pressed");
+			await signInWithGoogle();
+			// The deep link listener in _layout.tsx will handle the rest.
+		} catch (err) {
+			setError("Failed to sign in with Google.");
+			console.error(err);
 		}
 	};
 
@@ -139,7 +150,7 @@ export default function SignIn() {
 						className="w-6 h-6"
 					/>
 				)}
-				onPress={() => {}}
+				onPress={onGoogleSignInPress}
 				className="border border-gray-300 mt-2 shadow-black items-center bg-blue-500"
 				bgVariant="outline"
 				textVariant="primary"

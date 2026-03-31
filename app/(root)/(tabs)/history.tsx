@@ -10,11 +10,17 @@ const COLLECTION_ID = "ride_requests";
 
 type CompletedRide = {
 	id: string;
+	originAddress: string;
 	destinationName: string;
-	seatsRequested: number;
-	completedAt: string;
+	originLat: number | null;
+	originLng: number | null;
 	destinationLat: number | null;
 	destinationLng: number | null;
+	seatsRequested: number;
+	paymentStatus: string;
+	rating: number;
+	completedAt: string;
+	completedTime: string;
 };
 
 const formatCompletedDate = (iso: string) => {
@@ -38,7 +44,6 @@ const formatCompletedTime = (iso: string) => {
 
 const getMapUrl = (lng: number | null, lat: number | null) => {
 	if (lat == null || lng == null) return null;
-
 	return `https://maps.geoapify.com/v1/staticmap?style=osm-bright&width=600&height=400&center=lonlat:${lng},${lat}&zoom=14&apiKey=${process.env.EXPO_PUBLIC_GEOAPIFY_API_KEY}`;
 };
 
@@ -76,9 +81,10 @@ const History = () => {
 				setRides(
 					res.documents.map((doc: any) => ({
 						id: doc.$id,
+						originAddress: doc.OriginName || "Unknown origin",
 						destinationName: doc.DestinationName || "Unknown destination",
-						seatsRequested: doc.SeatsRequested || 0,
-						completedAt: doc.$updatedAt,
+						originLat: typeof doc.OriginLat === "number" ? doc.OriginLat : null,
+						originLng: typeof doc.OriginLng === "number" ? doc.OriginLng : null,
 						destinationLat:
 							typeof doc.DestinationLat === "number"
 								? doc.DestinationLat
@@ -87,6 +93,11 @@ const History = () => {
 							typeof doc.DestinationLng === "number"
 								? doc.DestinationLng
 								: null,
+						seatsRequested: doc.SeatsRequested || 0,
+						paymentStatus: doc.PaymentStatus || "pending",
+						rating: doc.Rating || 0,
+						completedAt: doc.$updatedAt,
+						completedTime: formatCompletedTime(doc.$updatedAt),
 					})),
 				);
 			} catch (err) {
@@ -107,9 +118,12 @@ const History = () => {
 					setRides((prev) => {
 						const ride: CompletedRide = {
 							id: doc.$id,
+							originAddress: doc.OriginName || "Unknown origin",
 							destinationName: doc.DestinationName || "Unknown destination",
-							seatsRequested: doc.SeatsRequested || 0,
-							completedAt: doc.$updatedAt,
+							originLat:
+								typeof doc.OriginLat === "number" ? doc.OriginLat : null,
+							originLng:
+								typeof doc.OriginLng === "number" ? doc.OriginLng : null,
 							destinationLat:
 								typeof doc.DestinationLat === "number"
 									? doc.DestinationLat
@@ -118,6 +132,11 @@ const History = () => {
 								typeof doc.DestinationLng === "number"
 									? doc.DestinationLng
 									: null,
+							seatsRequested: doc.SeatsRequested || 0,
+							paymentStatus: doc.PaymentStatus || "pending",
+							rating: doc.Rating || 0,
+							completedAt: doc.$updatedAt,
+							completedTime: formatCompletedTime(doc.$updatedAt),
 						};
 
 						const withoutCurrent = prev.filter((r) => r.id !== doc.$id);

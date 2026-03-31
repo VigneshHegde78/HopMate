@@ -97,12 +97,10 @@ const Profile = () => {
 				data: {
 					Name: profile.Name || "",
 					PhoneNo: profile.PhoneNo || null,
-					AboutMe: profile.AboutMe || "",
 					Gender: profile.Gender || "",
 					DateOfBirth: profile.DateOfBirth
 						? ddmmyyyyToISO(profile.DateOfBirth)
 						: null,
-					UserName: profile.UserName || "",
 				},
 			});
 
@@ -171,28 +169,6 @@ const Profile = () => {
 								</View>
 							))}
 						</View>
-
-						<Text className="font-figtreeSemiBold text-gray-800 mb-1">
-							User Name
-						</Text>
-						<TextInput
-							placeholder="Enter User Name"
-							className="flex w-full  border border-gray-800 rounded-md mb-4"
-							value={profile?.UserName || ""}
-							onChangeText={(text) =>
-								setProfile({ ...profile, UserName: text })
-							}
-						/>
-
-						<Text className="font-figtreeSemiBold text-gray-800 mb-1">
-							About Me
-						</Text>
-						<TextInput
-							placeholder="Add a description about yourself"
-							className="flex w-full h-20 border border-gray-800 rounded-md mb-4"
-							value={profile?.AboutMe || ""}
-							onChangeText={(text) => setProfile({ ...profile, AboutMe: text })}
-						/>
 
 						<Text className="font-figtreeSemiBold text-gray-800 mb-1">
 							Date of Birth
@@ -275,11 +251,6 @@ const Profile = () => {
 
 				{/* Profile Details */}
 				<View className="flex flex-col items-start justify-center bg-white rounded-lg shadow-sm shadow-neutral-300 px-5 py-3 mb-5">
-					<Text className="font-figtreeSemiBold text-gray-800">About me</Text>
-					<Text className="font-figtreeMedium text-gray-500 mt-1">
-						{profile?.AboutMe || "Not Found"}
-					</Text>
-
 					<Text className="font-figtreeSemiBold text-gray-800 mt-3">
 						Gender
 					</Text>
