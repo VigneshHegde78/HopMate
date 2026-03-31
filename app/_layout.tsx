@@ -90,15 +90,10 @@ export default function RootLayout() {
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
 			<UserModeProvider>
-				<OAuthHandler />
 				<Stack>
 					<Stack.Screen name="index" options={{ headerShown: false }} />
 					<Stack.Screen name="(root)" options={{ headerShown: false }} />
 					<Stack.Screen name="(auth)" options={{ headerShown: false }} />
-					<Stack.Screen
-						name="oauth/callback"
-						options={{ headerShown: false }}
-					/>
 				</Stack>
 			</UserModeProvider>
 		</GestureHandlerRootView>

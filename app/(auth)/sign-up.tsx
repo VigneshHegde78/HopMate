@@ -121,8 +121,26 @@ export default function SignUp() {
 	const onGoogleSignUpPress = async () => {
 		try {
 			console.log("Google Sign-Up button pressed");
-			await signInWithGoogle();
-			// The deep link listener in _layout.tsx will handle the rest.
+			const user = await signInWithGoogle();
+			// The deep link listener in _layout.tsx was unused, logic moved here.
+			try {
+				const profile = await tableDB.getRow({
+					databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
+					tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID!,
+					rowId: user.$id,
+				});
+
+				const role = profile.Role;
+				setMode(role);
+
+				router.replace(
+					role === "RIDER"
+						? "/(root)/(tabs)/home"
+						: "/(root)/(tabs)/driver",
+				);
+			} catch {
+				router.replace("/(auth)/userDetails");
+			}
 		} catch (err) {
 			setError("Failed to sign up with Google.");
 			console.error(err);

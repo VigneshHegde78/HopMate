@@ -23,23 +23,39 @@ export { Account, Client, Databases, Storage };
 
 export const signInWithGoogle = async () => {
 	try {
-		console.log("signInWithGoogle called");
-		const redirectUrl = Linking.createURL("oauth/callback");
-		const url = account.createOAuth2Session(
+		const redirectUrl = `appwrite-callback-${process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID}://oauth/callback`;
+
+		const url = account.createOAuth2Token(
 			OAuthProvider.Google,
 			redirectUrl,
 			redirectUrl,
-		) as URL | void;
+		);
+		if (!url) throw new Error("Failed to create OAuth2 Token");
 
-		if (!url) {
-			throw new Error("Failed to create OAuth2 session URL");
+		const result = await WebBrowser.openAuthSessionAsync(
+			url.toString(),
+			redirectUrl,
+		);
+
+		if (result.type !== "success") {
+			throw new Error("OAuth cancelled");
 		}
 
-		console.log("Opening OAuth session URL:", url.toString());
-		await WebBrowser.openBrowserAsync(url.toString());
-		console.log("Auth session finished");
+		const parsedUrl = Linking.parse(result.url);
+		const secret = parsedUrl.queryParams?.secret?.toString();
+		const userId = parsedUrl.queryParams?.userId?.toString();
+
+		if (!secret || !userId) {
+			throw new Error("Missing auth params from OAuth callback");
+		}
+
+		await account.createSession(userId, secret);
+
+		// 👇 THIS is what your UI needs
+		const user = await account.get();
+		return user;
 	} catch (error) {
 		console.error("Google Sign-In Error:", error);
-		throw new Error("Failed to sign in with Google");
+		throw error;
 	}
 };
