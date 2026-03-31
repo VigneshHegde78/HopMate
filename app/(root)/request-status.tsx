@@ -2,7 +2,7 @@
 import CustomButton from "@/components/CustomButton";
 import AppwriteClientInstance, { databases } from "@/lib/appwrite";
 import React, { useEffect, useState } from "react";
-import { Button, Image, Text, View } from "react-native";
+import { Image, Text, View } from "react-native";
 
 const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
 const COLLECTION_ID = "ride_requests";
@@ -11,12 +11,14 @@ type Props = {
 	requestId: string;
 	onAccepted: () => void;
 	onCancelled: () => void;
+	onCompleted?: () => void;
 };
 
 export default function RequestStatusView({
 	requestId,
 	onAccepted,
 	onCancelled,
+	onCompleted,
 }: Props) {
 	const [status, setStatus] = useState("PENDING");
 
@@ -39,6 +41,10 @@ export default function RequestStatusView({
 	useEffect(() => {
 		if (status === "ACCEPTED") {
 			onAccepted();
+		} else if (status === "COMPLETED") {
+			if (onCompleted) {
+				onCompleted();
+			}
 		}
 	}, [status]);
 
@@ -66,7 +72,18 @@ export default function RequestStatusView({
 			)}
 
 			{status === "REJECTED" && (
-				<Text style={{ color: "red" }}>Ride Rejected</Text>
+				<Text style={{ color: "red", fontSize: 18, marginTop: 20 }}>Ride Rejected</Text>
+			)}
+
+			{status === "ACCEPTED" && (
+				<View style={{ alignItems: "center", marginTop: 40 }}>
+					<Text style={{ fontSize: 24, fontWeight: "bold", color: "#000" }}>
+						Ride Confirmed 🎉
+					</Text>
+					<Text style={{ fontSize: 16, color: "gray", marginTop: 10 }}>
+						Your driver is on the way!
+					</Text>
+				</View>
 			)}
 		</View>
 	);

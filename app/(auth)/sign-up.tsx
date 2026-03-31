@@ -7,7 +7,7 @@ import { account, signInWithGoogle, tableDB } from "@/lib/appwrite";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View, Alert } from "react-native";
 import { ID } from "react-native-appwrite";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -37,8 +37,24 @@ export default function SignUp() {
 
 	// Email/Password Sign Up
 	const onSignUpPress = async () => {
-		if (!email || !password || !username || !confirmPassword) {
+		if (!email.trim() || !password || !username.trim() || !confirmPassword) {
 			setError("Please fill in all fields.");
+			return;
+		}
+
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		if (!emailRegex.test(email.trim())) {
+			setError("Please enter a valid email address.");
+			return;
+		}
+
+		if (username.trim().length < 3) {
+			setError("Name must be at least 3 characters long.");
+			return;
+		}
+
+		if (password.length < 8) {
+			setError("Password must be at least 8 characters long.");
 			return;
 		}
 		if (!selectedRole) return;
@@ -61,14 +77,14 @@ export default function SignUp() {
 
 			// 2️⃣ Create session FIRST
 			await account.createEmailPasswordSession({
-				email: email,
+				email: email.trim(),
 				password: password,
 			});
 
 			// 3️⃣ Create table row (profile)
 			const res = await tableDB.createRow({
 				databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
-				tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID!,
+				tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID || process.env.EXPO_PUBLIC_APPWRITE_USER_TABLE_ID!,
 				rowId: user.$id, // one row per user
 				data: {
 					UserID: user.$id,
@@ -79,7 +95,6 @@ export default function SignUp() {
 					MemberSince: formatDateDDMMYYYY(new Date()),
 					Email: user.email,
 					Name: user.name,
-					UserName: null,
 				},
 				permissions: [
 					`read("user:${user.$id}")`,
@@ -90,11 +105,11 @@ export default function SignUp() {
 
 			console.log("User profile created:", res);
 
-			// 4️⃣ Save mode & redirect
-			setMode(selectedRole);
-
-			if (selectedRole === "RIDER") router.replace("/(root)/(tabs)/home");
-			else router.replace("/(root)/(tabs)/driver");
+			// 4️⃣ Clear session and redirect to sign-in
+			await account.deleteSessions();
+			
+			Alert.alert("Sign Up Successful", "Your account has been created. Please sign in to continue.");
+			router.replace("/(auth)/sign-in");
 		} catch (err: any) {
 			const message = err?.message?.toLowerCase() || "";
 
@@ -126,7 +141,7 @@ export default function SignUp() {
 			try {
 				const profile = await tableDB.getRow({
 					databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
-					tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID!,
+					tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID || process.env.EXPO_PUBLIC_APPWRITE_USER_TABLE_ID!,
 					rowId: user.$id,
 				});
 
@@ -139,7 +154,37 @@ export default function SignUp() {
 						: "/(root)/(tabs)/driver",
 				);
 			} catch {
-				router.replace("/(auth)/userDetails");
+				// No profile found, meaning it's a first-time Google sign up!
+				// Create the profile now using the selectedRole from Step 1.
+				if (!selectedRole) {
+					setError("Please ensure you've selected a role.");
+					return;
+				}
+
+				await tableDB.createRow({
+					databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
+					tableId: process.env.EXPO_PUBLIC_APPWRITE_TABLE_ID || process.env.EXPO_PUBLIC_APPWRITE_USER_TABLE_ID!,
+					rowId: user.$id,
+					data: {
+						UserID: user.$id,
+						Role: selectedRole,
+						Gender: "",
+						DateOfBirth: null,
+						PhoneNo: null,
+						MemberSince: formatDateDDMMYYYY(new Date()),
+						Email: user.email,
+						Name: user.name,
+					},
+					permissions: [
+						`read("user:${user.$id}")`,
+						`update("user:${user.$id}")`,
+						`delete("user:${user.$id}")`,
+					],
+				});
+
+				setMode(selectedRole);
+				if (selectedRole === "RIDER") router.replace("/(root)/(tabs)/home");
+				else router.replace("/(root)/(tabs)/driver");
 			}
 		} catch (err) {
 			setError("Failed to sign up with Google.");

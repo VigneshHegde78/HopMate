@@ -529,59 +529,116 @@ export default function DriverHome() {
 				{/* ---------------- RIDE REQUESTS ---------------- */}
 				<View className="flex-1 mt-6">
 					{activeRides.map((r) => (
-						<View key={`active-${r.id}`} style={styles.card}>
-							<Text style={{ marginBottom: 6 }}>
-								📍 Destination: {r.destinationName}
-							</Text>
-
-							<Text style={{ marginBottom: 8 }}>
-								🪑 Seats: {r.seatsRequested}
-							</Text>
+						<View
+							key={`active-${r.id}`}
+							className="bg-white p-4 rounded-xl mb-4 shadow-sm border border-gray-100"
+						>
+							<View className="flex-row items-center justify-between mb-4">
+								<View className="flex-row items-center flex-1 mr-3">
+									<View className="bg-blue-100 p-2 rounded-full mr-3">
+										<MaterialIcons name="location-pin" size={24} color="#2563eb" />
+									</View>
+									<View className="flex-1">
+										<Text className="text-gray-500 text-xs font-lexendSemiBold mb-1">
+											ACTIVE RIDE DESTINATION
+										</Text>
+										<Text className="text-gray-800 text-lg font-lexendBold">
+											{r.destinationName}
+										</Text>
+									</View>
+								</View>
+								<View className="bg-gray-100 px-3 py-1.5 rounded-full flex-row items-center">
+									<MaterialIcons name="person" size={16} color="#4b5563" />
+									<Text className="text-gray-700 font-lexendBold ml-1">
+										{r.seatsRequested}
+									</Text>
+								</View>
+							</View>
 
 							<TouchableOpacity
 								onPress={() => completeRide(r.id)}
-								style={[styles.btn, { backgroundColor: "#2563eb" }]}
+								className="bg-blue-600 py-3 rounded-lg items-center mt-2 flex-row justify-center"
 							>
-								<Text style={{ color: "#fff" }}>Complete Ride</Text>
+								<MaterialIcons name="check-circle" size={20} color="#fff" />
+								<Text className="text-white font-lexendBold ml-2 text-base">
+									Complete Ride
+								</Text>
 							</TouchableOpacity>
 						</View>
 					))}
 
-					<Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 12 }}>
-						Ride Requests
-					</Text>
+					<View className="flex-row items-center mb-4 mt-2">
+						<Text className="text-xl font-lexendBold text-gray-800 mr-2">
+							Ride Requests
+						</Text>
+						{requests.length > 0 && (
+							<View className="bg-blue-100 px-2.5 py-1 rounded-full">
+								<Text className="text-blue-700 font-lexendBold text-xs">
+									{requests.length} NEW
+								</Text>
+							</View>
+						)}
+					</View>
 
 					<View
 						className={`flex w-full h-96 ${requests.length === 0 ? "items-center" : ""}`}
 					>
 						{requests.length === 0 && (
-							<Text className="text-center text-gray-500">No requests yet</Text>
+							<View className="items-center justify-center mt-10">
+								<MaterialIcons name="hourglass-empty" size={48} color="#d1d5db" />
+								<Text className="text-center text-gray-500 mt-4 font-lexendSemiBold">
+									No requests at the moment
+								</Text>
+							</View>
 						)}
 
-						<ScrollView>
+						<ScrollView showsVerticalScrollIndicator={false}>
 							{requests.map((r) => (
-								<View key={r.id} style={styles.card}>
-									<Text style={{ marginBottom: 6 }}>
-										📍 Destination: {r.destinationName}
-									</Text>
+								<View
+									key={r.id}
+									className="bg-white p-4 rounded-xl mb-4 shadow-sm border border-gray-100"
+								>
+									<View className="flex-row items-center justify-between mb-4">
+										<View className="flex-row items-center flex-1 mr-3">
+											<View className="bg-gray-100 p-2 rounded-full mr-3">
+												<MaterialIcons name="place" size={24} color="#4b5563" />
+											</View>
+											<View className="flex-1">
+												<Text className="text-gray-500 text-xs font-lexendSemiBold mb-1">
+													DESTINATION
+												</Text>
+												<Text className="text-gray-800 text-lg font-lexendBold">
+													{r.destinationName}
+												</Text>
+											</View>
+										</View>
+										<View className="bg-gray-100 px-3 py-1.5 rounded-full flex-row items-center">
+											<MaterialIcons name="person" size={16} color="#4b5563" />
+											<Text className="text-gray-700 font-lexendBold ml-1">
+												{r.seatsRequested}
+											</Text>
+										</View>
+									</View>
 
-									<Text style={{ marginBottom: 8 }}>
-										🪑 Seats: {r.seatsRequested}
-									</Text>
-
-									<View style={{ flexDirection: "row" }}>
+									<View className="flex-row gap-3 mt-2">
 										<TouchableOpacity
-											onPress={() => acceptRequest(r.id)}
-											style={[styles.btn, { backgroundColor: "green" }]}
+											onPress={() => rejectRequest(r.id)}
+											className="flex-1 bg-red-100 py-3 rounded-lg items-center flex-row justify-center"
 										>
-											<Text style={{ color: "#fff" }}>Accept</Text>
+											<MaterialIcons name="close" size={20} color="#dc2626" />
+											<Text className="text-red-600 font-lexendBold ml-1 text-base">
+												Reject
+											</Text>
 										</TouchableOpacity>
 
 										<TouchableOpacity
-											onPress={() => rejectRequest(r.id)}
-											style={[styles.btn, { backgroundColor: "red" }]}
+											onPress={() => acceptRequest(r.id)}
+											className="flex-1 bg-green-600 py-3 rounded-lg items-center flex-row justify-center"
 										>
-											<Text style={{ color: "#fff" }}>Reject</Text>
+											<MaterialIcons name="check" size={20} color="#fff" />
+											<Text className="text-white font-lexendBold ml-1 text-base">
+												Accept
+											</Text>
 										</TouchableOpacity>
 									</View>
 								</View>

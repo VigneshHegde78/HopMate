@@ -89,6 +89,27 @@ const Profile = () => {
 			return;
 		}
 
+		if (!profile.Name || profile.Name.trim().length === 0) {
+			Alert.alert("Validation Error", "Full Name is required.");
+			return;
+		}
+		
+		if (profile.PhoneNo && profile.PhoneNo.length !== 10) {
+			Alert.alert("Validation Error", "Phone number must be exactly 10 digits.");
+			return;
+		}
+
+		if (profile.DateOfBirth) {
+			if (!isValidDDMMYYYY(profile.DateOfBirth)) {
+				Alert.alert("Validation Error", "Please provide a valid Date of Birth (DD-MM-YYYY).");
+				return;
+			}
+			if (!isAbove18(profile.DateOfBirth)) {
+				Alert.alert("Validation Error", "You must be at least 18 years old.");
+				return;
+			}
+		}
+
 		try {
 			const updated = await tableDB.updateRow({
 				databaseId: DATABASE_ID,
@@ -306,21 +327,34 @@ const Profile = () => {
 
 					<TouchableOpacity
 						className="mb-1"
-						onPress={async () => {
-							try {
-								// Try deleting the session if it exists
-								await account.deleteSessions();
-								console.log("User logged out successfully.");
-							} catch (error: any) {
-								if (error.message.includes("Session not found")) {
-									console.log("No active session found, continuing logout.");
-								} else {
-									console.error("Logout failed:", error);
-								}
-							} finally {
-								// Always navigate to Sign-In
-								router.replace("/(auth)/sign-in");
-							}
+						onPress={() => {
+							Alert.alert(
+								"Delete Account",
+								"Are you sure you want to delete your account? This action cannot be undone.",
+								[
+									{ text: "Cancel", style: "cancel" },
+									{
+										text: "Delete",
+										style: "destructive",
+										onPress: async () => {
+											try {
+												if (profile?.$id) {
+													await tableDB.deleteRow({
+														databaseId: DATABASE_ID,
+														tableId: PROFILE_TABLE_ID!,
+														rowId: profile.$id,
+													});
+												}
+												await account.deleteSessions();
+											} catch (e) {
+												console.error("Failed to delete account:", e);
+											} finally {
+												router.replace("/(auth)/sign-in");
+											}
+										},
+									},
+								]
+							);
 						}}
 					>
 						<Text className="font-figtreeBold text-red-500">

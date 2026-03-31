@@ -72,26 +72,17 @@ export default function CustomBottomSheet({ drivers, userLocation }: Props) {
 					/>
 				)}
 
-				{/* -------- WAITING -------- */}
-				{flowState === "WAITING" && requestId && (
+				{/* -------- WAITING or CONFIRMED -------- */}
+				{(flowState === "WAITING" || flowState === "CONFIRMED") && requestId && (
 					<RequestStatusView
 						requestId={requestId}
 						onAccepted={() => setFlowState("CONFIRMED")}
 						onCancelled={resetFlow}
-					/>
-				)}
-
-				{/* -------- CONFIRMED -------- */}
-				{flowState === "CONFIRMED" && (
-					<Text
-						style={{
-							fontSize: 22,
-							fontWeight: "bold",
-							color: "#000",
+						onCompleted={() => {
+							alert("Ride Completed!");
+							resetFlow();
 						}}
-					>
-						Ride Confirmed 🎉
-					</Text>
+					/>
 				)}
 			</BottomSheetView>
 		</BottomSheet>

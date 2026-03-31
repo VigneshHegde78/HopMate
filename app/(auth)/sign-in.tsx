@@ -7,7 +7,7 @@ import { account, signInWithGoogle, tableDB } from "@/lib/appwrite";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -19,10 +19,15 @@ export default function SignIn() {
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState("");
 
-	// Email/Password Sign In
 	const onSignInPress = async () => {
-		if (!email || !password) {
+		if (!email.trim() || !password) {
 			setError("Please fill in all fields.");
+			return;
+		}
+
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		if (!emailRegex.test(email.trim())) {
+			setError("Please enter a valid email address.");
 			return;
 		}
 
@@ -92,8 +97,9 @@ export default function SignIn() {
 					router.replace("/(root)/(tabs)/driver");
 				}
 			} catch (profileErr) {
-				// No profile found, redirect to userDetails
-				router.replace("/(auth)/userDetails");
+				// No profile found, redirect to sign-up so they can pick a role
+				await account.deleteSessions();
+				router.replace("/(auth)/sign-up");
 			}
 		} catch (err) {
 			console.error(err);
@@ -132,8 +138,7 @@ export default function SignIn() {
 			/>
 
 			<View className="flex-row justify-between items-start mt-0.5">
-				<Text className="text-red-600 mb-2">{error}</Text>
-				<TouchableOpacity>
+				<TouchableOpacity onPress={() => router.push("/(auth)/forgot-password")}>
 					<Text className="text-blue-600 text-sm font-lexendSemiBold mb-4">
 						Forgot Password?
 					</Text>
