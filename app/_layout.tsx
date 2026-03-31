@@ -3,6 +3,7 @@ import { account, tableDB } from "@/lib/appwrite";
 import { useFonts } from "expo-font";
 import * as Linking from "expo-linking";
 import { SplashScreen, Stack, router } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -64,6 +65,7 @@ function OAuthHandler() {
 	return null;
 }
 
+
 export default function RootLayout() {
 	const [loaded] = useFonts({
 		"Lexend-Light": require("../assets/fonts/Lexend-Light.ttf"),
@@ -90,6 +92,7 @@ export default function RootLayout() {
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
 			<UserModeProvider>
+				<StatusBar hidden={true} />
 				<Stack>
 					<Stack.Screen name="index" options={{ headerShown: false }} />
 					<Stack.Screen name="(root)" options={{ headerShown: false }} />
