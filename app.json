@@ -5,15 +5,9 @@
 		"version": "1.0.0",
 		"orientation": "portrait",
 		"icon": "./assets/images/logo.png",
-		"splash": {
-			"image": "./assets/images/splash-icon.png",
-			"resizeMode": "contain",
-			"backgroundColor": "#f0c030"
-		},
 
 		"scheme": ["hopmate", "appwrite-callback-688860eb00179a10fcbd"],
 		"userInterfaceStyle": "light",
-		"newArchEnabled": true,
 		"ios": {
 			"supportsTablet": true
 		},
@@ -23,7 +17,11 @@
 				"backgroundColor": "#E6F4FE",
 				"foregroundImage": "./assets/images/adaptive-icon.png"
 			},
-			"edgeToEdgeEnabled": true,
+			"config": {
+				"googleMaps": {
+					"apiKey": "AIzaSyAhcaqU2NW7_UCQBco002mpAblNSSy83sc"
+				}
+			},
 			"predictiveBackGestureEnabled": false,
 			"permissions": ["android.permissions."]
 		},
